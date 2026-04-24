@@ -21,8 +21,8 @@
 </p>
 
 <p align="center">
-  <a href="#quick-install">Quick Install</a> •
-  <a href="#sdk-quickstart">SDK</a> •
+  <a href="#using-with-ai-clis">AI CLIs</a> •
+  <a href="#building-agents">Agent SDK</a> •
   <a href="#how-it-works">How It Works</a> •
   <a href="#cli-reference">CLI</a> •
   <a href="#platform-support">Platforms</a>
@@ -34,54 +34,237 @@ AI CLIs that expose hundreds of tools in every prompt waste context window, slow
 
 ---
 
-## Quick Install
+## Using with AI CLIs
 
-One command. ASF installs a hook into your AI CLI and routes every prompt automatically from that point on.
-
-```bash
-npx agentskillfinder install claude   # Claude Code
-npx agentskillfinder install gemini   # Gemini CLI
-npx agentskillfinder install codex    # OpenAI Codex
-npx agentskillfinder install cursor   # Cursor
-```
-
-Then build a skill index from your local skill registries:
+ASF installs a hook into your AI CLI that intercepts every prompt and narrows the tool list before the model sees it. Two steps: install the hook, then build a skill index from your registries.
 
 ```bash
-asf ingest --sources ./path/to/skills --out ~/.asf
+# build a skill index once (point at your local skill directories)
+npx agentskillfinder ingest --sources ./skills --out ~/.asf
 ```
 
-That's it. Every subsequent prompt is intercepted by ASF — the model sees only the relevant skills, not the full catalog.
+### Claude Code
+
+```bash
+npx agentskillfinder install claude
+```
+
+ASF writes a `PreToolUse` hook into `~/.claude/settings.json`. Every subsequent Claude Code prompt is intercepted — the model receives only the 3–5 tools that match the task.
+
+```bash
+claude "scan this repo for hardcoded secrets and generate a SARIF report"
+# → Claude receives: secret-scanner, sarif-formatter, file-walker, git-log-reader
+# → not: all 200 tools in your registry
+```
+
+Verify the hook is active:
+
+```bash
+asf query "scan this repo for hardcoded secrets"
+# prints the bundle ASF would inject for that task
+```
 
 ---
 
-## SDK Quickstart
+### Gemini CLI
 
-For agent builders embedding ASF programmatically:
+```bash
+npx agentskillfinder install gemini
+```
+
+ASF writes a `BeforeToolSelection` hook into `~/.gemini/settings.json`. Gemini calls ASF before the LLM picks a tool — ASF returns `allowedFunctionNames` to narrow the selection space.
+
+```bash
+gemini -p "fetch a GitHub PR diff and review it for security issues"
+# → Gemini receives: github-pr-fetcher, security-auditor, diff-parser
+# → allowedFunctionNames injected by ASF before model picks
+```
+
+The hook merges into any existing `BeforeToolSelection` entries (e.g. claude-mem) — existing hooks are preserved.
+
+---
+
+### OpenAI Codex
+
+```bash
+npx agentskillfinder install codex
+```
+
+ASF writes a pre-exec filter into `.codex/hooks.json` and adds a routing directive to `AGENTS.md`. Codex applies the filter before tool execution.
+
+```bash
+codex "refactor this Python module to use async/await"
+# → Codex receives: python-ast-refactor, async-converter, test-runner
+```
+
+---
+
+### Cursor
+
+```bash
+npx agentskillfinder install cursor
+```
+
+ASF writes a rules file to `.cursor/rules/asf.mdc`. Cursor includes this rule on every request, directing the model to request only relevant tools.
+
+```bash
+# open Cursor in your project — ASF rule is active automatically
+# use Cursor chat/composer normally
+```
+
+---
+
+## Building Agents
+
+For programmatic use: build an index from skill manifests once, then call `JITRouter.find()` at inference time. No LLM calls. No model downloads. The router returns a `SkillBundle` that emits the right tool format for your platform.
+
+### Index + Router Setup
 
 ```javascript
 import { buildIndex } from 'agentskillfinder';
 import { JITRouter } from 'agentskillfinder/router';
 
-// build once from your skill manifests
+// build once — reads manifest files, writes _index.json to rootDir
 await buildIndex(manifests, { rootDir: './compiled_skills' });
 
-// route at inference time — no LLM calls
+// instantiate once per process
 const router = new JITRouter({ indexDir: './compiled_skills' });
-const { bundle, timings } = await router.find({
-  task: 'find PD-L1 papers and produce a Nature-style figure',
-  tokenBudget: 4000,
-  maxSkills: 5,
-});
-
-// emit to your platform
-const tools = bundle.toAnthropic();   // ToolParam[]
-// bundle.toOpenAI()                  // ChatCompletionTool[]
-// bundle.toGemini()                  // Tool[]
-// bundle.toMcp()                     // MCP Tool[]
 ```
 
-**Example output:**
+### Skill Manifest Format
+
+```json
+{
+  "id": "github-pr-reviewer",
+  "name": "GitHub PR Reviewer",
+  "description": "Fetch a GitHub pull request diff and review it for issues",
+  "capability": {
+    "inputs": ["repo:string", "pr_number:integer"],
+    "outputs": ["review:ReviewComment[]"]
+  },
+  "graph": {
+    "depends_on": ["github-auth"],
+    "complements": ["security-scanner"]
+  }
+}
+```
+
+`depends_on` edges are unconditional — ASF always pulls in a required upstream skill even under tight token budgets.
+
+---
+
+### Anthropic SDK
+
+```javascript
+import Anthropic from '@anthropic-ai/sdk';
+import { JITRouter } from 'agentskillfinder/router';
+
+const client = new Anthropic();
+const router = new JITRouter({ indexDir: '~/.asf' });
+
+async function run(task) {
+  const { bundle, timings } = await router.find({ task, tokenBudget: 4000, maxSkills: 5 });
+
+  console.log(`routed in ${timings.total}ms → ${bundle.manifests.length} skills`);
+
+  return client.messages.create({
+    model: 'claude-opus-4-7',
+    max_tokens: 1024,
+    tools: bundle.toAnthropic(),   // ToolParam[] — only relevant tools
+    messages: [{ role: 'user', content: task }],
+  });
+}
+```
+
+### OpenAI SDK
+
+```javascript
+import OpenAI from 'openai';
+import { JITRouter } from 'agentskillfinder/router';
+
+const client = new OpenAI();
+const router = new JITRouter({ indexDir: '~/.asf' });
+
+async function run(task) {
+  const { bundle } = await router.find({ task, tokenBudget: 4000, maxSkills: 5 });
+
+  return client.chat.completions.create({
+    model: 'gpt-4o',
+    tools: bundle.toOpenAI(),      // ChatCompletionTool[]
+    messages: [{ role: 'user', content: task }],
+  });
+}
+```
+
+### Google Gemini SDK
+
+```javascript
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { JITRouter } from 'agentskillfinder/router';
+
+const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const router = new JITRouter({ indexDir: '~/.asf' });
+
+async function run(task) {
+  const { bundle } = await router.find({ task, tokenBudget: 4000, maxSkills: 5 });
+
+  const model = genai.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    tools: bundle.toGemini(),      // Tool[]
+  });
+
+  return model.generateContent(task);
+}
+```
+
+### MCP Server
+
+ASF exposes itself as an MCP stdio server. Any MCP host (Claude Desktop, VS Code, custom agents) can connect and query the router over the standard protocol.
+
+```bash
+asf serve
+```
+
+Add to your MCP host config:
+
+```json
+{
+  "mcpServers": {
+    "agentskillfinder": {
+      "command": "asf",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+Tools returned as `MCP Tool[]` via `bundle.toMcp()`.
+
+---
+
+### Custom Reranker (Stage 2 injection)
+
+The default reranker is Jaccard token overlap — fast, zero-dependency, good for most catalogs. Swap in a cross-encoder, embedding model, or any scoring function without touching the rest of the pipeline.
+
+```javascript
+import { JITRouter } from 'agentskillfinder/router';
+
+const myReranker = async (query, texts) => {
+  // return float[] — one score per text, same order as input
+  return texts.map(text => myModel.score(query, text));
+};
+
+const router = new JITRouter({
+  indexDir: '~/.asf',
+  rerankerFn: myReranker,
+});
+```
+
+Stages 1, 3, and 4 are unaffected. The injected reranker replaces only Stage 2.
+
+---
+
+### Example Bundle Output
 
 ```
 recall(12ms) + rerank(3ms) + graph(2ms) + hydrate(1ms) = 18ms total
