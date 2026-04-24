@@ -63,34 +63,38 @@ export async function installClaude({
 
 // ── Gemini target ─────────────────────────────────────────────────────────────
 
-const GEMINI_SETTINGS_BLOCK = (asfBin) => ({
-  skillRouter: {
-    provider: 'agentskillfinder',
-    command: `${asfBin} query`,
-    preActivation: true,
-  },
+const GEMINI_HOOK_ENTRY = (hookScript) => ({
+  matcher: '*',
+  hooks: [{
+    name: 'asf-skill-router',
+    type: 'command',
+    command: `node ${hookScript}`,
+    timeout: 5000,
+  }],
 });
 
 /**
- * Inject ASF pre-router into .gemini/settings.json.
+ * Inject ASF BeforeToolSelection hook into ~/.gemini/settings.json.
  *
- * @param {{ settingsPath?: string, asfBin?: string, fs?: object }} opts
+ * @param {{ settingsPath?: string, hookScript?: string, fs?: object }} opts
  * @returns {Promise<{ path: string, alreadyInstalled: boolean }>}
  */
 export async function installGemini({
-  settingsPath = join(process.cwd(), '.gemini', 'settings.json'),
-  asfBin = 'asf',
+  settingsPath = join(homedir(), '.gemini', 'settings.json'),
+  hookScript = join(homedir(), '.npm', '_npx', 'asf', 'hooks', 'beforeToolSelection.js'),
   fs = null,
 } = {}) {
   const raw = await readOrEmpty(settingsPath, fs);
   let settings = {};
   try { settings = raw ? JSON.parse(raw) : {}; } catch { settings = {}; }
 
-  if (settings.skillRouter?.provider === 'agentskillfinder') {
+  const existing = settings.hooks?.BeforeToolSelection ?? [];
+  if (existing.some(g => (g.hooks ?? []).some(h => h.name === 'asf-skill-router'))) {
     return { path: settingsPath, alreadyInstalled: true };
   }
 
-  Object.assign(settings, GEMINI_SETTINGS_BLOCK(asfBin));
+  settings.hooks = settings.hooks ?? {};
+  settings.hooks.BeforeToolSelection = [...existing, GEMINI_HOOK_ENTRY(hookScript)];
   await ensureWrite(settingsPath, JSON.stringify(settings, null, 2) + '\n', fs);
 
   return { path: settingsPath, alreadyInstalled: false };

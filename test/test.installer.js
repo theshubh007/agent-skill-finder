@@ -63,11 +63,13 @@ describe('installClaude', () => {
 // ── gemini target ─────────────────────────────────────────────────────────────
 
 describe('installGemini', () => {
-  test('writes settings.json with skillRouter block', async () => {
+  test('writes settings.json with BeforeToolSelection hook', async () => {
     const fs = makeFs();
     const result = await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
     const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
-    assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
+    const groups = parsed.hooks?.BeforeToolSelection ?? [];
+    const hook = groups.flatMap(g => g.hooks ?? []).find(h => h.name === 'asf-skill-router');
+    assert.ok(hook, 'asf-skill-router hook not found');
     assert.equal(result.alreadyInstalled, false);
   });
 
@@ -77,18 +79,34 @@ describe('installGemini', () => {
     await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
     const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
     assert.equal(parsed.theme, 'dark');
-    assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
+    assert.ok(parsed.hooks?.BeforeToolSelection?.length > 0);
   });
 
-  test('uses custom asfBin in command', async () => {
-    const fs = makeFs();
-    await installGemini({ settingsPath: '/tmp/.gemini/settings.json', asfBin: '/usr/local/bin/asf', fs });
+  test('preserves existing BeforeToolSelection hooks from other tools', async () => {
+    const existing = JSON.stringify({
+      hooks: { BeforeToolSelection: [{ matcher: '*', hooks: [{ name: 'claude-mem', type: 'command', command: 'mem' }] }] },
+    });
+    const fs = makeFs({ '/tmp/.gemini/settings.json': existing });
+    await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
     const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
-    assert.ok(parsed.skillRouter.command.includes('/usr/local/bin/asf'));
+    const names = parsed.hooks.BeforeToolSelection.flatMap(g => g.hooks ?? []).map(h => h.name);
+    assert.ok(names.includes('claude-mem'), 'existing claude-mem hook removed');
+    assert.ok(names.includes('asf-skill-router'), 'asf-skill-router hook missing');
+  });
+
+  test('uses custom hookScript in command', async () => {
+    const fs = makeFs();
+    await installGemini({ settingsPath: '/tmp/.gemini/settings.json', hookScript: '/opt/asf/hooks/beforeToolSelection.js', fs });
+    const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
+    const groups = parsed.hooks?.BeforeToolSelection ?? [];
+    const hook = groups.flatMap(g => g.hooks ?? []).find(h => h.name === 'asf-skill-router');
+    assert.ok(hook.command.includes('/opt/asf/hooks/beforeToolSelection.js'));
   });
 
   test('returns alreadyInstalled true when already configured', async () => {
-    const existing = JSON.stringify({ skillRouter: { provider: 'agentskillfinder' } });
+    const existing = JSON.stringify({
+      hooks: { BeforeToolSelection: [{ matcher: '*', hooks: [{ name: 'asf-skill-router', type: 'command', command: 'node /x.js' }] }] },
+    });
     const fs = makeFs({ '/tmp/.gemini/settings.json': existing });
     const result = await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
     assert.equal(result.alreadyInstalled, true);
@@ -212,7 +230,7 @@ describe('install dispatcher', () => {
     const fs = makeFs();
     await install('gemini', { settingsPath: '/tmp/.gemini/settings.json', fs });
     const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
-    assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
+    assert.ok(parsed.hooks?.BeforeToolSelection?.length > 0);
   });
 
   test('install codex delegates to installCodex', async () => {
