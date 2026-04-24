@@ -1,6 +1,6 @@
 {
   "name": "agentskillfinder",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "3–5 tools instead of 1,800. ≤65ms. Zero LLM calls in the router.",
   "type": "module",
   "engines": {

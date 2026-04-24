@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.0] — 2026-04-23
+
+### Added
+- `src/slopGate.js` — 6-signal anti-slop quality gate; QUARANTINE_THRESHOLD=0.4; logistic regression weights summing to 1.0; exports `computeSlopScore`, all 5 signal scorers, `BOILERPLATE_PATTERNS`
+- `bin/asf.js validate` — wired to real schema + slop_score + capability type + _index.json duplicate checks; `parseSkillManifest()` tries YAML frontmatter then ```yaml code block
+- `test/fixtures/known-duplicates.json` — 12 confirmed cross-registry duplicate pairs (11 AST-hash + 1 cosine) with expected canonical and slop scores
+- `test/test.canonicalize.fixtures.js` — 24 fixture-based dedup tests covering all pairs + canonical selection logic
+
+---
+
 ## [0.2.0] — 2026-04-23
 
 ### Added
