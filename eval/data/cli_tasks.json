@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "task": "fetch an SSE stream from an endpoint, parse each event payload, then execute a bash command derived from the event data",
+    "failure_mode": "Composition Deadlock",
+    "failure_description": "SSE stream consumer produces events; bash executor consumes string commands — without explicit data-flow edge, planner may deadlock if both treated as roots",
+    "required_skills": ["sse-stream-fetch", "event-parse", "bash-exec"],
+    "composition_order": ["sse-stream-fetch", "event-parse", "bash-exec"],
+    "category": "streaming"
+  },
+  {
+    "id": 2,
+    "task": "route a tool call through a god-node CLI configuration skill that has 40+ outbound edges in the skill graph",
+    "failure_mode": "Coupling Lock",
+    "failure_description": "God-node with high degree (>mean×3) causes all queries to route through it; GNCI spike collapses routing to single bottleneck",
+    "required_skills": ["cli-config-reader", "tool-router"],
+    "composition_order": ["cli-config-reader", "tool-router"],
+    "category": "routing"
+  },
+  {
+    "id": 3,
+    "task": "find and activate the correct skill in a registry fragmented into 800+ Louvain communities where the target skill is an isolated node",
+    "failure_mode": "Fragmentation Collapse",
+    "failure_description": "High CFI (>40) means isolated nodes have no graph edges; BFS expansion returns only the seed — bundle has 1 skill instead of required 3",
+    "required_skills": ["isolated-skill"],
+    "composition_order": ["isolated-skill"],
+    "category": "fragmentation"
+  },
+  {
+    "id": 4,
+    "task": "chain bioinformatics sequence alignment to a visualization skill then to a scientific report-writing skill across three registries",
+    "failure_mode": "Multi-hop Composition",
+    "failure_description": "3-hop dependency chain spanning registries; each hop must resolve the output type of the previous skill to the input type of the next",
+    "required_skills": ["seq-align", "bio-visualize", "report-write"],
+    "composition_order": ["seq-align", "bio-visualize", "report-write"],
+    "category": "scientific"
+  },
+  {
+    "id": 5,
+    "task": "retrieve a skill whose name is adversarially similar to a high-frequency skill but implements different functionality",
+    "failure_mode": "ToolTweak",
+    "failure_description": "Adversarially-named skill (e.g. 'web-search-v2' that actually reads local files) bypasses keyword recall — requires cross-encoder reranking to surface correct skill",
+    "required_skills": ["true-web-search"],
+    "composition_order": ["true-web-search"],
+    "category": "adversarial"
+  }
+]
