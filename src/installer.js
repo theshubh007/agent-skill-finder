@@ -96,6 +96,57 @@ export async function installGemini({
   return { path: settingsPath, alreadyInstalled: false };
 }
 
+// ── Codex target ──────────────────────────────────────────────────────────────
+
+const AGENTS_MD_BLOCK = (asfBin) => `
+## ASF Routing (agentskillfinder)
+
+AgentSkillFinder provides JIT skill routing. Before each tool call, run:
+
+\`\`\`bash
+${asfBin} query "<task description>"
+\`\`\`
+
+The output is a ranked SkillBundle. Use its composition plan to sequence tool calls.
+`;
+
+const CODEX_HOOKS = (asfBin) => ({
+  preToolUse: {
+    command: `${asfBin} query`,
+    description: 'Route tool calls through ASF 4-stage pipeline',
+  },
+});
+
+/**
+ * Inject ASF routing into AGENTS.md and .codex/hooks.json.
+ *
+ * @param {{ agentsMdPath?: string, hooksJsonPath?: string, asfBin?: string, fs?: object }} opts
+ * @returns {Promise<{ paths: string[], alreadyInstalled: boolean }>}
+ */
+export async function installCodex({
+  agentsMdPath = join(process.cwd(), 'AGENTS.md'),
+  hooksJsonPath = join(process.cwd(), '.codex', 'hooks.json'),
+  asfBin = 'asf',
+  fs = null,
+} = {}) {
+  const existingMd = await readOrEmpty(agentsMdPath, fs);
+
+  if (existingMd.includes('agentskillfinder')) {
+    return { paths: [agentsMdPath, hooksJsonPath], alreadyInstalled: true };
+  }
+
+  const updatedMd = existingMd.trimEnd() + '\n' + AGENTS_MD_BLOCK(asfBin);
+  await ensureWrite(agentsMdPath, updatedMd, fs);
+
+  const rawHooks = await readOrEmpty(hooksJsonPath, fs);
+  let hooks = {};
+  try { hooks = rawHooks ? JSON.parse(rawHooks) : {}; } catch { hooks = {}; }
+  Object.assign(hooks, CODEX_HOOKS(asfBin));
+  await ensureWrite(hooksJsonPath, JSON.stringify(hooks, null, 2) + '\n', fs);
+
+  return { paths: [agentsMdPath, hooksJsonPath], alreadyInstalled: false };
+}
+
 // ── Main install dispatcher ───────────────────────────────────────────────────
 
 /**
@@ -109,6 +160,7 @@ export async function install(target, opts = {}) {
   switch (target) {
     case 'claude':  return installClaude(opts);
     case 'gemini':  return installGemini(opts);
+    case 'codex':   return installCodex(opts);
     default:        throw new Error(`Unknown install target: ${target}`);
   }
 }

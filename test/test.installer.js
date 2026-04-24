@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { installClaude, installGemini, install } from '../src/installer.js';
+import { installClaude, installGemini, installCodex, install } from '../src/installer.js';
 
 // ── injectable in-memory fs ───────────────────────────────────────────────────
 
@@ -101,6 +101,64 @@ describe('installGemini', () => {
   });
 });
 
+// ── codex target ──────────────────────────────────────────────────────────────
+
+describe('installCodex', () => {
+  test('writes ASF block to AGENTS.md and creates .codex/hooks.json', async () => {
+    const fs = makeFs();
+    const result = await installCodex({
+      agentsMdPath: '/tmp/AGENTS.md',
+      hooksJsonPath: '/tmp/.codex/hooks.json',
+      fs,
+    });
+    assert.ok(fs.store['/tmp/AGENTS.md'].includes('agentskillfinder'));
+    const hooks = JSON.parse(fs.store['/tmp/.codex/hooks.json']);
+    assert.ok('preToolUse' in hooks);
+    assert.equal(result.alreadyInstalled, false);
+  });
+
+  test('appends to existing AGENTS.md without clobbering content', async () => {
+    const fs = makeFs({ '/tmp/AGENTS.md': '# My Agents\nDo this.' });
+    await installCodex({ agentsMdPath: '/tmp/AGENTS.md', hooksJsonPath: '/tmp/.codex/hooks.json', fs });
+    assert.ok(fs.store['/tmp/AGENTS.md'].includes('# My Agents'));
+    assert.ok(fs.store['/tmp/AGENTS.md'].includes('agentskillfinder'));
+  });
+
+  test('merges into existing hooks.json without clobbering other keys', async () => {
+    const initial = JSON.stringify({ otherHook: { command: 'other' } });
+    const fs = makeFs({ '/tmp/.codex/hooks.json': initial });
+    await installCodex({ agentsMdPath: '/tmp/AGENTS.md', hooksJsonPath: '/tmp/.codex/hooks.json', fs });
+    const hooks = JSON.parse(fs.store['/tmp/.codex/hooks.json']);
+    assert.ok('otherHook' in hooks);
+    assert.ok('preToolUse' in hooks);
+  });
+
+  test('uses custom asfBin in hooks.json command', async () => {
+    const fs = makeFs();
+    await installCodex({
+      agentsMdPath: '/tmp/AGENTS.md',
+      hooksJsonPath: '/tmp/.codex/hooks.json',
+      asfBin: '/usr/local/bin/asf',
+      fs,
+    });
+    const hooks = JSON.parse(fs.store['/tmp/.codex/hooks.json']);
+    assert.ok(hooks.preToolUse.command.includes('/usr/local/bin/asf'));
+  });
+
+  test('returns alreadyInstalled true when agentskillfinder already in AGENTS.md', async () => {
+    const fs = makeFs({ '/tmp/AGENTS.md': '# Existing\n\n## ASF Routing (agentskillfinder)' });
+    const result = await installCodex({ agentsMdPath: '/tmp/AGENTS.md', hooksJsonPath: '/tmp/.codex/hooks.json', fs });
+    assert.equal(result.alreadyInstalled, true);
+  });
+
+  test('returns both paths in result', async () => {
+    const fs = makeFs();
+    const result = await installCodex({ agentsMdPath: '/tmp/AGENTS.md', hooksJsonPath: '/tmp/.codex/hooks.json', fs });
+    assert.ok(result.paths.includes('/tmp/AGENTS.md'));
+    assert.ok(result.paths.includes('/tmp/.codex/hooks.json'));
+  });
+});
+
 describe('install dispatcher', () => {
   test('install claude delegates to installClaude', async () => {
     const fs = makeFs();
@@ -113,6 +171,16 @@ describe('install dispatcher', () => {
     await install('gemini', { settingsPath: '/tmp/.gemini/settings.json', fs });
     const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
     assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
+  });
+
+  test('install codex delegates to installCodex', async () => {
+    const fs = makeFs();
+    const result = await install('codex', {
+      agentsMdPath: '/tmp/AGENTS.md',
+      hooksJsonPath: '/tmp/.codex/hooks.json',
+      fs,
+    });
+    assert.ok(fs.store['/tmp/AGENTS.md'].includes('agentskillfinder'));
   });
 
   test('install unknown target throws', async () => {
