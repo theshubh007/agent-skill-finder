@@ -7,8 +7,8 @@
     "node": ">=20.0.0"
   },
   "bin": {
-    "asf": "./bin/asf.js",
-    "agentskillfinder": "./bin/asf.js"
+    "asf": "bin/asf.js",
+    "agentskillfinder": "bin/asf.js"
   },
   "main": "./src/index.js",
   "exports": {
@@ -78,7 +78,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/theshubh007/agent-skill-finder.git"
+    "url": "git+https://github.com/theshubh007/agent-skill-finder.git"
   },
   "bugs": {
     "url": "https://github.com/theshubh007/agent-skill-finder/issues"
