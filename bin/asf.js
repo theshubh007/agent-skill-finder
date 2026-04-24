@@ -12,6 +12,7 @@ import { computeTLIS, computeGNCI, computeCFI, computeRScore, routingRisk, failu
 import { computeSlopScore } from '../src/slopGate.js';
 import { CapabilityType } from '../src/manifest.js';
 import { JITRouter } from '../src/router.js';
+import { install } from '../src/installer.js';
 
 const program = new Command();
 
@@ -238,6 +239,32 @@ program
     if (bundle.plan?.ioViolations?.length > 0) {
       const pairs = bundle.plan.ioViolations.map((v) => `${v.from}→${v.to}`).join(', ');
       console.log(`[warn] I/O type mismatches: ${pairs}`);
+    }
+  });
+
+// ── install ───────────────────────────────────────────────────────────────────
+program
+  .command('install <target>')
+  .description('Install ASF routing hooks for a supported agent (claude, gemini, codex, cursor)')
+  .option('--claude-md <path>', 'path to CLAUDE.md (default: ~/.claude/CLAUDE.md)')
+  .option('--hook-script <path>', 'path to preToolUse.js (default: ~/.npm/_npx/asf/hooks/preToolUse.js)')
+  .option('--settings <path>', 'path to agent settings file')
+  .action(async (target, opts) => {
+    try {
+      const result = await install(target, {
+        claudeMdPath: opts.claudeMd,
+        hookScript: opts.hookScript,
+        settingsPath: opts.settings,
+      });
+      if (result.alreadyInstalled) {
+        console.log(`[install] ASF already installed for ${target} at ${result.path}`);
+      } else {
+        console.log(`✓ ASF routing active for ${target === 'claude' ? 'Claude Code' : target}`);
+        console.log(`  Written: ${result.path}`);
+      }
+    } catch (err) {
+      console.error(`[install] ${err.message}`);
+      process.exit(1);
     }
   });
 
