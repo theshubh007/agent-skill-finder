@@ -243,6 +243,98 @@ program
     }
   });
 
+// ── reindex ───────────────────────────────────────────────────────────────────
+program
+  .command('reindex [path]')
+  .description('Incrementally rebuild skill index (SHA-256 cache skips unchanged skills)')
+  .option('--out <dir>', 'output directory for _index.json')
+  .option('--force', 'ignore cache, rebuild everything')
+  .action(async (pathArg, opts) => {
+    const sourcesRoot = pathArg ?? process.cwd();
+    try {
+      const result = await SkillIndex.build({
+        sourcesRoot,
+        outputDir: opts.out,
+        useCache: !opts.force,
+        log: (msg) => console.log(msg),
+      });
+      const changed = result.changedCount ?? '?';
+      console.log(
+        `\nReindexed in ${result.buildTimeMs}ms — ${result.canonicalCount} canonical skills` +
+        (opts.force ? '' : `  (${changed} changed)`),
+      );
+    } catch (err) {
+      console.error(`[reindex] ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+// ── eval ──────────────────────────────────────────────────────────────────────
+program
+  .command('eval [skill-id]')
+  .description('Smoke-eval routing quality for a skill or the full index')
+  .option('--index-dir <path>', 'directory containing skills.lance index')
+  .option('--limit <n>', 'max skills to test when no skill-id given', '50')
+  .action(async (skillId, opts) => {
+    const indexDir = opts.indexDir ? resolve(opts.indexDir) : process.cwd();
+    const indexPath = join(resolve(indexDir), 'skills', '_index.json');
+
+    if (!existsSync(indexPath)) {
+      console.error('[eval] No skill index found. Run `asf ingest` or `asf pull` first.');
+      process.exit(1);
+    }
+
+    const raw = readFileSync(indexPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    const allSkills = Array.isArray(parsed) ? parsed : (parsed.skills ?? []);
+
+    const targets = skillId
+      ? allSkills.filter((s) => s.id === skillId)
+      : allSkills.slice(0, parseInt(opts.limit, 10));
+
+    if (targets.length === 0) {
+      console.error(`[eval] Skill '${skillId}' not found in index.`);
+      process.exit(1);
+    }
+
+    let router;
+    try {
+      router = new JITRouter({ indexDir });
+    } catch (err) {
+      console.error(`[eval] Router init failed: ${err.message}`);
+      console.error('Run `asf ingest` or `asf pull` first.');
+      process.exit(1);
+    }
+
+    let passed = 0;
+    let failed = 0;
+
+    for (const skill of targets) {
+      const query = skill.description ?? skill.name ?? skill.id;
+      let hit = false;
+      try {
+        const result = await router.find({ task: query, tokenBudget: 8000, maxSkills: 5 });
+        hit = result.bundle.manifests.some((m) => m.id === skill.id);
+      } catch {
+        // router failure counts as miss
+      }
+
+      if (hit) {
+        console.log(`  ✓  ${skill.id}`);
+        passed++;
+      } else {
+        console.log(`  ✗  ${skill.id.padEnd(42)} [not in top-5]`);
+        failed++;
+      }
+    }
+
+    const total = passed + failed;
+    const pct = total > 0 ? Math.round((passed / total) * 100) : 0;
+    console.log(`\nHit@5: ${passed}/${total}  (${pct}%)`);
+
+    if (skillId && failed > 0) process.exit(1);
+  });
+
 // ── pull ──────────────────────────────────────────────────────────────────────
 program
   .command('pull')
