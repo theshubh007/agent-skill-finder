@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { installClaude, install } from '../src/installer.js';
+import { installClaude, installGemini, install } from '../src/installer.js';
 
 // ── injectable in-memory fs ───────────────────────────────────────────────────
 
@@ -60,11 +60,59 @@ describe('installClaude', () => {
   });
 });
 
+// ── gemini target ─────────────────────────────────────────────────────────────
+
+describe('installGemini', () => {
+  test('writes settings.json with skillRouter block', async () => {
+    const fs = makeFs();
+    const result = await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
+    const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
+    assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
+    assert.equal(result.alreadyInstalled, false);
+  });
+
+  test('merges into existing settings.json without clobbering other keys', async () => {
+    const initial = JSON.stringify({ theme: 'dark', other: true });
+    const fs = makeFs({ '/tmp/.gemini/settings.json': initial });
+    await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
+    const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
+    assert.equal(parsed.theme, 'dark');
+    assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
+  });
+
+  test('uses custom asfBin in command', async () => {
+    const fs = makeFs();
+    await installGemini({ settingsPath: '/tmp/.gemini/settings.json', asfBin: '/usr/local/bin/asf', fs });
+    const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
+    assert.ok(parsed.skillRouter.command.includes('/usr/local/bin/asf'));
+  });
+
+  test('returns alreadyInstalled true when already configured', async () => {
+    const existing = JSON.stringify({ skillRouter: { provider: 'agentskillfinder' } });
+    const fs = makeFs({ '/tmp/.gemini/settings.json': existing });
+    const result = await installGemini({ settingsPath: '/tmp/.gemini/settings.json', fs });
+    assert.equal(result.alreadyInstalled, true);
+  });
+
+  test('returns path in result', async () => {
+    const fs = makeFs();
+    const result = await installGemini({ settingsPath: '/custom/.gemini/settings.json', fs });
+    assert.equal(result.path, '/custom/.gemini/settings.json');
+  });
+});
+
 describe('install dispatcher', () => {
   test('install claude delegates to installClaude', async () => {
     const fs = makeFs();
     const result = await install('claude', { claudeMdPath: '/tmp/CLAUDE.md', fs });
     assert.ok(fs.store['/tmp/CLAUDE.md'].includes('agentskillfinder'));
+  });
+
+  test('install gemini delegates to installGemini', async () => {
+    const fs = makeFs();
+    await install('gemini', { settingsPath: '/tmp/.gemini/settings.json', fs });
+    const parsed = JSON.parse(fs.store['/tmp/.gemini/settings.json']);
+    assert.equal(parsed.skillRouter.provider, 'agentskillfinder');
   });
 
   test('install unknown target throws', async () => {

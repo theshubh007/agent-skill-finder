@@ -61,6 +61,41 @@ export async function installClaude({
   return { path: claudeMdPath, alreadyInstalled: false };
 }
 
+// ── Gemini target ─────────────────────────────────────────────────────────────
+
+const GEMINI_SETTINGS_BLOCK = (asfBin) => ({
+  skillRouter: {
+    provider: 'agentskillfinder',
+    command: `${asfBin} query`,
+    preActivation: true,
+  },
+});
+
+/**
+ * Inject ASF pre-router into .gemini/settings.json.
+ *
+ * @param {{ settingsPath?: string, asfBin?: string, fs?: object }} opts
+ * @returns {Promise<{ path: string, alreadyInstalled: boolean }>}
+ */
+export async function installGemini({
+  settingsPath = join(process.cwd(), '.gemini', 'settings.json'),
+  asfBin = 'asf',
+  fs = null,
+} = {}) {
+  const raw = await readOrEmpty(settingsPath, fs);
+  let settings = {};
+  try { settings = raw ? JSON.parse(raw) : {}; } catch { settings = {}; }
+
+  if (settings.skillRouter?.provider === 'agentskillfinder') {
+    return { path: settingsPath, alreadyInstalled: true };
+  }
+
+  Object.assign(settings, GEMINI_SETTINGS_BLOCK(asfBin));
+  await ensureWrite(settingsPath, JSON.stringify(settings, null, 2) + '\n', fs);
+
+  return { path: settingsPath, alreadyInstalled: false };
+}
+
 // ── Main install dispatcher ───────────────────────────────────────────────────
 
 /**
@@ -73,6 +108,7 @@ export async function installClaude({
 export async function install(target, opts = {}) {
   switch (target) {
     case 'claude':  return installClaude(opts);
+    case 'gemini':  return installGemini(opts);
     default:        throw new Error(`Unknown install target: ${target}`);
   }
 }
