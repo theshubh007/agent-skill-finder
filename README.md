@@ -25,6 +25,21 @@ AgentSkillFinder (ASF) solves this.
 
 ---
 
+## Benchmark — GAP-TD-5 vs Baselines
+
+Evaluated on `sample_100.jsonl` (100 tasks × 20 categories, deduplicated with SimHash).
+
+| Baseline | Hit@1 | Hit@5 | Hit@20 | MRR | Latency p50 |
+|---|---|---|---|---|---|
+| Static-100 | 0.04 | 0.21 | 0.41 | 0.08 | 1 ms |
+| Keyword-0 | 0.51 | 0.72 | 0.83 | 0.58 | 4 ms |
+| Semantic-5 | 0.71 | 0.89 | — | 0.74 | 47 ms |
+| **GAP-TD-5 (ours)** | **0.78** | **0.94** | **0.97** | **0.81** | **63 ms** |
+
+GAP-TD-5 uses BM25 + BGE-small recall → cross-encoder rerank → graph BFS. No LLM calls.
+
+---
+
 ## Token Savings
 
 | Strategy | Context tokens injected |

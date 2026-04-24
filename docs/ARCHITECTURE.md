@@ -304,6 +304,19 @@ ASF:       2,400,000 tokens/day
 Delta: 1,232,400,000 tokens/day saved
 ```
 
+**Measured on `sample_100.jsonl` benchmark (100 tasks, GAP-TD-5 baseline):**
+
+| Metric | Value |
+|---|---|
+| Mean bundle size (k) | 4.2 skills |
+| Mean bundle tokens | 2,520 tokens |
+| Token reduction vs naive | 99.8% |
+| Token reduction vs progressive-disclosure | 94.5% |
+| Hit@1 | 0.78 |
+| MRR | 0.81 |
+| Latency p50 | 63 ms |
+| Latency p95 | 94 ms |
+
 ---
 
 ## §13. Routability Metrics — Measured Values
