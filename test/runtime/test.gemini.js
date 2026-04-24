@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { toGemini } from '../../src/runtime/adapters/gemini.js';
+import { toGemini, toGeminiActivateTool } from '../../src/runtime/adapters/gemini.js';
 
 const MANIFESTS = [
   {
@@ -80,5 +80,39 @@ describe('toGemini (gemini runtime adapter)', () => {
     const result = toGemini([]);
     assert.equal(result.length, 1);
     assert.deepEqual(result[0].functionDeclarations, []);
+  });
+});
+
+describe('toGeminiActivateTool (gemini-cli pre-filter adapter)', () => {
+  test('returns array of length equal to manifests', () => {
+    assert.equal(toGeminiActivateTool(MANIFESTS).length, MANIFESTS.length);
+  });
+
+  test('each item has skillId and registry', () => {
+    for (const item of toGeminiActivateTool(MANIFESTS)) {
+      assert.ok(typeof item.skillId === 'string');
+      assert.ok(typeof item.registry === 'string');
+    }
+  });
+
+  test('skillId matches manifest id (hyphens preserved)', () => {
+    const items = toGeminiActivateTool(MANIFESTS);
+    assert.equal(items[0].skillId, 'parse-args');
+    assert.equal(items[1].skillId, 'web-search');
+  });
+
+  test('registry comes from source.registry', () => {
+    const items = toGeminiActivateTool(MANIFESTS);
+    assert.equal(items[0].registry, 'antigravity');
+    assert.equal(items[1].registry, 'awesome-claude');
+  });
+
+  test('manifest without source.registry defaults to local', () => {
+    const result = toGeminiActivateTool([{ id: 'bare-skill', name: 'Bare', description: 'No source' }]);
+    assert.equal(result[0].registry, 'local');
+  });
+
+  test('empty manifests returns empty array', () => {
+    assert.deepEqual(toGeminiActivateTool([]), []);
   });
 });
