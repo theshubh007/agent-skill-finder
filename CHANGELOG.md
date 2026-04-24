@@ -5,6 +5,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.4.0] — 2026-04-23
+
+### Added
+- `src/index.js` — `buildIndex(manifests)` → LanceDB `skills.lance`; BGE-small-en-v1.5 ONNX embeddings via @xenova/transformers; hybrid BM25+ANN with RRF fusion; HNSW index (m=16, efConstruction=100); warm-start table cache
+- `src/rerank.js` — `rerank(query, candidates[100], topK=30)` → top-30 scored by BGE-reranker-v2-m3 cross-encoder; batched ONNX inference; singleton session reuse
+- `eval/metrics.js` — `hitAtK`, `reciprocalRank`, `evaluate` — pure Hit@K + MRR computation
+- `eval/data/retrieval_eval_150.json` — 150-query annotated eval set across 20 skill categories
+- `eval/run_retrieval_eval.js` — CLI runner: prints Hit@1 / Hit@5 / Hit@20 / MRR + per-category Hit@5 breakdown
+
+### Perf
+- Stage 1 ANN: HNSW `hnswSq` index replaces flat scan; open table handle reused across `recall()` calls
+- Stage 2 cross-encoder: single batched ONNX forward pass for all candidate pairs; int8-quantized weights
+
+---
+
 ## [0.3.0] — 2026-04-23
 
 ### Added
