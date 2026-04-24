@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.8.0] — 2026-04-24
+
+### Added
+- `src/runtime/sandbox.js` — 5-tier runtime sandbox (`safe` → `network` → `exec` → `critical` → `unsafe`); `classifyTier(manifest)` uses explicit `risk` field + description heuristics; `runInSandbox(manifest, fn)` dispatches per tier; `unsafe` throws `SandboxRejectedError`
+- `src/security/triggerAnalysis.js` — cross-registry behavioral trigger-pattern analysis; `extractTriggerPatterns`, `detectCrossRegistryOverlap`, `detectToolTweakInjection`, `analyzeRegistries`
+- `src/security/signing.js` — ed25519 manifest signing via Node.js `crypto`; `generateKeyPair`, `signManifest`, `verifyManifest`, `verifyBundle`
+- `src/security/toolFloodDetector.js` — ToolFlood anomaly detection; `detectToolFlood` flags batches where >N skills share a dominant trigger pattern; `rateLimitSkills` partitions admitted vs held
+- `test/fixtures/tooltweak_injections.json` — 10 adversarial skill descriptions covering all ToolTweak attack vectors (filesystem exfiltration, shell injection, crypto interception, database side-channels, ML exfiltration)
+
+---
+
 ## [0.7.0] — 2026-04-24
 
 ### Added
