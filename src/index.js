@@ -9,10 +9,16 @@ const MODEL_ID = 'Xenova/bge-small-en-v1.5';
 const TABLE_NAME = 'skills';
 const RRF_K = 60;
 
+// HNSW tuning: m=16 (graph degree), efConstruction=100 (build quality)
+const HNSW_M = 16;
+const HNSW_EF_CONSTRUCTION = 100;
+
 let _pipe = null;
+// Warm-start cache: dbPath → open Table reference
+const _tableCache = new Map();
 
 async function defaultEmbedFn(texts) {
-  if (!_pipe) _pipe = await pipeline('feature-extraction', MODEL_ID);
+  if (!_pipe) _pipe = await pipeline('feature-extraction', MODEL_ID, { quantized: true });
   const out = await _pipe(texts, { pooling: 'mean', normalize: true });
   const dim = out.dims[1];
   return Array.from({ length: texts.length }, (_, i) =>
@@ -56,11 +62,20 @@ export async function buildIndex(manifests, { rootDir = process.cwd(), embedFn =
     manifest: JSON.stringify(m),
   }));
 
-  const db = await connect(join(rootDir, 'skills.lance'));
+  const dbPath = join(rootDir, 'skills.lance');
+  const db = await connect(dbPath);
   const existing = await db.tableNames();
   if (existing.includes(TABLE_NAME)) await db.dropTable(TABLE_NAME);
   const table = await db.createTable(TABLE_NAME, records);
+
+  // Build FTS index for BM25 recall and HNSW index for sub-10ms ANN
   await table.createIndex('text', { config: Index.fts() });
+  await table.createIndex('vector', {
+    config: Index.hnswSq({ m: HNSW_M, efConstruction: HNSW_EF_CONSTRUCTION }),
+  });
+
+  // Warm-start: cache open table so first recall() skips reconnect overhead
+  _tableCache.set(dbPath, table);
 
   return { count: records.length };
 }
@@ -69,8 +84,14 @@ export async function recall(query, topK = 100, { rootDir = process.cwd(), embed
   const embed = embedFn ?? defaultEmbedFn;
   const [qVec] = await embed([query]);
 
-  const db = await connect(join(rootDir, 'skills.lance'));
-  const table = await db.openTable(TABLE_NAME);
+  // Reuse warm table handle; fall back to fresh connect on first call
+  const dbPath = join(rootDir, 'skills.lance');
+  let table = _tableCache.get(dbPath);
+  if (!table) {
+    const db = await connect(dbPath);
+    table = await db.openTable(TABLE_NAME);
+    _tableCache.set(dbPath, table);
+  }
   const fetchK = Math.min(Math.ceil(topK * 2), 500);
 
   const [annRows, ftsRows] = await Promise.all([

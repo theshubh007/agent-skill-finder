@@ -5,12 +5,20 @@ env.useBrowserCache = false;
 
 const RERANKER_ID = 'Xenova/bge-reranker-v2-m3';
 
+// Singleton: ONNX session kept open across calls — no session re-init overhead
 let _reranker = null;
 
 async function defaultRerankerFn(query, texts) {
-  if (!_reranker) _reranker = await pipeline('text-classification', RERANKER_ID);
+  if (!_reranker) {
+    // quantized=true loads the int8 ONNX weights (~4× smaller → faster cold start)
+    _reranker = await pipeline('text-classification', RERANKER_ID, { quantized: true });
+  }
   const pairs = texts.map((t) => [query, t]);
-  const outputs = await _reranker(pairs, { function_to_apply: 'sigmoid' });
+  // Single batched inference call — all pairs scored in one ONNX forward pass
+  const outputs = await _reranker(pairs, {
+    function_to_apply: 'sigmoid',
+    batch_size: pairs.length,
+  });
   return (Array.isArray(outputs) ? outputs : [outputs]).map((o) => o.score);
 }
 
