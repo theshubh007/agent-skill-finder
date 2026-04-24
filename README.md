@@ -372,8 +372,6 @@ node eval/perf/latency_p50_p95.js
 ASF_INDEX_DIR=~/.asf node eval/run_retrieval_eval.js
 ```
 
-See [`maintainers_docs/testing_plan/benchmark_evaluation.md`](maintainers_docs/testing_plan/benchmark_evaluation.md) for the full 14-metric eval harness and per-platform testing guide.
-
 ---
 
 ## Privacy
