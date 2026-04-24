@@ -34,6 +34,23 @@ AI CLIs that expose hundreds of tools in every prompt waste context window, slow
 
 ---
 
+## Performance
+
+Benchmarked on a 120-skill mixed catalog (legal brief analysis pipeline + general dev skills) across 20 queries:
+
+| Metric | Without ASF | With ASF |
+|--------|------------|----------|
+| Tools in context | 120 every request | ~5 per request |
+| Tokens per request | ~6,544 | ~274 |
+| **Token reduction** | — | **95.8%** |
+| **Routing latency** | — | **≤2ms** |
+
+No LLM calls in the router. Stages: BM25 recall (≤2ms) + Jaccard rerank (≤1ms) + graph walk (≤1ms) + planner (≤1ms).
+
+Full 20-query benchmark with per-query breakdowns: [performance_testing_result.md](./performance_testing_result.md)
+
+---
+
 ## Using with AI CLIs
 
 ASF installs a hook into your AI CLI that intercepts every prompt and narrows the tool list before the model sees it. Two steps: install the hook, then build a skill index from your registries.
