@@ -5,12 +5,6 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/agentskillfinder">
-    <img src="https://img.shields.io/npm/v/agentskillfinder" alt="npm version"/>
-  </a>
-  <a href="https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml">
-    <img src="https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml/badge.svg" alt="CI"/>
-  </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"/>
   </a>
