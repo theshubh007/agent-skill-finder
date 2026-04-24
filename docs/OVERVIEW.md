@@ -92,22 +92,24 @@ Native top-level await, built-in `node:test`, and compatibility with the ONNX ru
 ## Install Experience
 
 ```bash
-# Option A: install and build your own index from local registries
+# Option A (recommended for end users): transparent hook — runs once, routes every prompt automatically
+npx agentskillfinder install claude   # Claude Code
+npx agentskillfinder install gemini   # Gemini CLI
+npx agentskillfinder install codex    # OpenAI Codex
+npx agentskillfinder install cursor   # Cursor
+
+# Option B: pull pre-built canonical index (~40MB, 2,058 skills) for standalone use
+npx agentskillfinder pull
+
+# Option C: build your own index from local registries
 npm install agentskillfinder
 asf ingest ./my-registries
 
-# Option B: pull pre-built canonical index (~40MB, 2,058 skills)
-npx agentskillfinder pull
-
-# Option C: incremental rebuild after registry changes
+# Option D: incremental rebuild after registry changes
 asf reindex
-
-# Option D: wire as transparent hook into your AI CLI
-asf install claude     # Claude Code
-asf install gemini     # Gemini CLI
-asf install codex      # OpenAI Codex
-asf install cursor     # Cursor
 ```
+
+After `asf install <target>`, every tool call is intercepted by `src/hooks/preToolUse.js` and routed through the 4-stage pipeline before the model sees it. No user action is required per-prompt.
 
 ---
 

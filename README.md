@@ -51,19 +51,26 @@ p50 ≤65ms target **verified** against 2,058-skill production index (`eval/perf
 
 ---
 
-## Install
+## Zero-Touch Install (Recommended)
+
+Run once. Never think about it again.
 
 ```bash
-npm install agentskillfinder
+npx agentskillfinder install claude   # Claude Code
+npx agentskillfinder install gemini   # Gemini CLI
+npx agentskillfinder install codex    # OpenAI Codex
+npx agentskillfinder install cursor   # Cursor
 ```
 
-```bash
-npx agentskillfinder
-```
+After install, **every prompt is automatically routed** — ASF intercepts tool calls before they reach the model and injects the 3–5 most relevant skills. You never run `asf query` manually. The hook runs in the background on every invocation.
 
 ---
 
-## Quickstart
+## SDK Quickstart (library / agent builders)
+
+> Building your own AI CLI or agent framework and want to embed ASF programmatically?
+> Use the SDK below. For Claude Code / Gemini CLI / opencode end users,
+> [Zero-Touch Install](#zero-touch-install-recommended) above is all you need.
 
 ```typescript
 import { SkillIndex } from 'agentskillfinder/skill-index';
@@ -109,25 +116,49 @@ COMPOSITION PLAN
 
 ---
 
-## CLI
+## CLI Reference
+
+### Hook install (normal user path)
 
 ```bash
-# ingest registries → canonical skill index
+asf install claude    # Claude Code — writes PreToolUse hook to ~/.claude/CLAUDE.md
+asf install gemini    # Gemini CLI  — writes skillRouter config to .gemini/settings.json
+asf install codex     # OpenAI Codex — appends to AGENTS.md + .codex/hooks.json
+asf install cursor    # Cursor — writes .cursor/rules/asf.mdc
+```
+
+### Registry management
+
+```bash
+# pull pre-built canonical index from CDN (~40MB, 2,058 skills)
+asf pull
+
+# ingest local registries → canonical skill index
 asf ingest ./registries
 
-# query skills
+# incremental rebuild (SHA-256 cache, only changed skills re-extracted)
+asf reindex
+```
+
+### Debugging / development tools
+
+These commands are for testing and development — **not** the normal user flow.
+
+```bash
+# manually route a task (debug only — the hook does this automatically in normal use)
 asf query "fetch SSE stream and execute bash command"
 
-# validate a skill
+# validate a skill before submitting a PR
 asf validate skills/my-skill
 
-# measure registry routability
+# smoke-eval routing quality for a specific skill
+asf eval my-skill-id
+
+# measure routability metrics for any AI CLI codebase
 asf measure ./some-ai-cli-project
 
-# wire ASF as transparent hook into your AI CLI
-asf claude install
-asf gemini install
-asf codex install
+# run as MCP stdio server
+asf serve
 ```
 
 ---
@@ -173,12 +204,12 @@ After canonicalization (22% dedup): **2,058 canonical skills**
 
 ## Platform Support
 
-| Platform | Install hook | Output format |
+| Platform | Install command | Output format |
 |---|---|---|
-| Claude Code | `asf claude install` | `ToolParam[]` |
-| Gemini CLI | `asf gemini install` | `ActivateSkillToolInput[]` |
-| OpenAI Codex | `asf codex install` | `ChatCompletionTool[]` |
-| Cursor | `asf cursor install` | `.cursor/rules/asf.mdc` |
+| Claude Code | `asf install claude` | `ToolParam[]` |
+| Gemini CLI | `asf install gemini` | `ActivateSkillToolInput[]` |
+| OpenAI Codex | `asf install codex` | `ChatCompletionTool[]` |
+| Cursor | `asf install cursor` | `.cursor/rules/asf.mdc` |
 | Any MCP host | `asf serve` | MCP stdio server |
 
 ---
