@@ -1,29 +1,23 @@
-import { pipeline, env } from '@xenova/transformers';
-
-env.allowRemoteModels = true;
-env.useBrowserCache = false;
-
-const RERANKER_ID = 'Xenova/bge-reranker-v2-m3';
-
-// Singleton: ONNX session kept open across calls — no session re-init overhead
-let _reranker = null;
-
-async function defaultRerankerFn(query, texts) {
-  if (!_reranker) {
-    // quantized=true loads the int8 ONNX weights (~4× smaller → faster cold start)
-    _reranker = await pipeline('text-classification', RERANKER_ID, { quantized: true });
-  }
-  const pairs = texts.map((t) => [query, t]);
-  // Single batched inference call — all pairs scored in one ONNX forward pass
-  const outputs = await _reranker(pairs, {
-    function_to_apply: 'sigmoid',
-    batch_size: pairs.length,
-  });
-  return (Array.isArray(outputs) ? outputs : [outputs]).map((o) => o.score);
+function tokenize(text) {
+  return text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
 function manifestText(m) {
   return `${m.id} ${m.name ?? ''} ${m.description ?? ''}`.trim();
+}
+
+function jaccardScore(queryTokens, docTokens) {
+  const qSet = new Set(queryTokens);
+  const dSet = new Set(docTokens);
+  let overlap = 0;
+  for (const t of qSet) if (dSet.has(t)) overlap++;
+  const union = qSet.size + dSet.size - overlap;
+  return union > 0 ? overlap / union : 0;
+}
+
+async function defaultRerankerFn(query, texts) {
+  const qTok = tokenize(query);
+  return texts.map(t => jaccardScore(qTok, tokenize(t)));
 }
 
 export async function rerank(query, candidates, topK = 30, { rerankerFn = null } = {}) {

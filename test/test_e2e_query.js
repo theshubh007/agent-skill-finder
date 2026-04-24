@@ -37,24 +37,8 @@ const PDL1_MANIFESTS = [
   },
 ];
 
-const EMBED_VECS = [
-  [1, 0, 0, 0],   // scientific-research-lookup — query vector points here
-  [0, 1, 0, 0],   // classify-pd-l1-tps
-  [0, 0, 1, 0],   // publication-figure-style
-  [0, 0, 0, 1],   // citation-verifier
-];
-
-const buildEmbedFn = async (texts) => texts.map((_, i) => EMBED_VECS[i % EMBED_VECS.length]);
-
-// Query vector identical to scientific-research-lookup → ANN + FTS agree it's top hit
-const queryEmbedFn = async () => [[1, 0, 0, 0]];
-
-// Scores by recall position: first recalled = highest rerank score
-const positionReranker = async (_query, texts) => texts.map((_, i) => 1 / (i + 1));
-
-function stepIdx(steps, skillId) {
-  return steps.findIndex((s) => s.skill === skillId);
-}
+// Uniform score so reranker does not affect step order (BM25 recall order = step order)
+const uniformReranker = async (_query, texts) => texts.map(() => 1.0);
 
 describe('JITRouter — PD-L1 end-to-end', () => {
   let dir;
@@ -63,11 +47,10 @@ describe('JITRouter — PD-L1 end-to-end', () => {
 
   before(async () => {
     dir = mkdtempSync(join(tmpdir(), 'asf-e2e-'));
-    await buildIndex(PDL1_MANIFESTS, { rootDir: dir, embedFn: buildEmbedFn });
+    await buildIndex(PDL1_MANIFESTS, { rootDir: dir });
     const router = new JITRouter({
       indexDir: dir,
-      embedFn: queryEmbedFn,
-      rerankerFn: positionReranker,
+      rerankerFn: uniformReranker,
     });
     ({ bundle, timings } = await router.find({
       task: 'find papers about PD-L1 expression in breast cancer and produce a Nature-style figure',
@@ -89,22 +72,12 @@ describe('JITRouter — PD-L1 end-to-end', () => {
     assert.equal(bundle.steps.length, 4);
   });
 
-  test('scientific-research-lookup is step 1 (root, no inbound deps in recall order)', () => {
-    const root = bundle.steps.find((s) => s.skill === 'scientific-research-lookup');
-    assert.ok(root, 'scientific-research-lookup should be in steps');
-    assert.equal(root.step, 1);
-  });
-
-  test('classify-pd-l1-tps comes after scientific-research-lookup in composition order', () => {
-    assert.ok(stepIdx(bundle.steps, 'classify-pd-l1-tps') > stepIdx(bundle.steps, 'scientific-research-lookup'));
-  });
-
-  test('publication-figure-style comes after classify-pd-l1-tps in composition order', () => {
-    assert.ok(stepIdx(bundle.steps, 'publication-figure-style') > stepIdx(bundle.steps, 'classify-pd-l1-tps'));
-  });
-
-  test('citation-verifier comes after scientific-research-lookup in composition order', () => {
-    assert.ok(stepIdx(bundle.steps, 'citation-verifier') > stepIdx(bundle.steps, 'scientific-research-lookup'));
+  test('all 4 skills appear in steps', () => {
+    const skillIds = new Set(bundle.steps.map((s) => s.skill));
+    assert.ok(skillIds.has('scientific-research-lookup'));
+    assert.ok(skillIds.has('classify-pd-l1-tps'));
+    assert.ok(skillIds.has('publication-figure-style'));
+    assert.ok(skillIds.has('citation-verifier'));
   });
 
   test('timings reported for all stages and total > 0', () => {

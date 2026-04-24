@@ -1,103 +1,57 @@
-import { connect, Index } from '@lancedb/lancedb';
-import { pipeline, env } from '@xenova/transformers';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-env.allowRemoteModels = true;
-env.useBrowserCache = false;
+// Okapi BM25 constants
+const BM25_K1 = 1.5;
+const BM25_B  = 0.75;
 
-const MODEL_ID = 'Xenova/bge-small-en-v1.5';
-const TABLE_NAME = 'skills';
-const RRF_K = 60;
-
-// HNSW tuning: m=16 (graph degree), efConstruction=100 (build quality)
-const HNSW_M = 16;
-const HNSW_EF_CONSTRUCTION = 100;
-
-let _pipe = null;
-// Warm-start cache: dbPath → open Table reference
-const _tableCache = new Map();
-
-async function defaultEmbedFn(texts) {
-  if (!_pipe) _pipe = await pipeline('feature-extraction', MODEL_ID, { quantized: true });
-  const out = await _pipe(texts, { pooling: 'mean', normalize: true });
-  const dim = out.dims[1];
-  return Array.from({ length: texts.length }, (_, i) =>
-    Array.from(out.data.slice(i * dim, (i + 1) * dim)),
-  );
+function tokenize(text) {
+  return text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
 function manifestText(m) {
-  return `${m.id} ${m.name ?? ''} ${m.description ?? ''}`.trim();
+  return `${m.id} ${m.name ?? ''} ${m.description ?? ''} ${m.capability?.type ?? ''}`.trim();
 }
 
-function rrfFuse(annRows, ftsRows, topK) {
-  const scores = new Map();
-  const byId = new Map();
-
-  const rank = (rows) => {
-    rows.forEach((r, i) => {
-      scores.set(r.id, (scores.get(r.id) ?? 0) + 1 / (RRF_K + i + 1));
-      byId.set(r.id, r);
-    });
-  };
-
-  rank(annRows);
-  rank(ftsRows);
-
-  return [...scores.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, topK)
-    .map(([id]) => JSON.parse(byId.get(id).manifest));
+export async function buildIndex(manifests, { rootDir = process.cwd() } = {}) {
+  await writeFile(join(rootDir, '_index.json'), JSON.stringify(manifests, null, 2), 'utf8');
+  return { count: manifests.length };
 }
 
-export async function buildIndex(manifests, { rootDir = process.cwd(), embedFn = null } = {}) {
-  const embed = embedFn ?? defaultEmbedFn;
-  const texts = manifests.map(manifestText);
-  const vecs = await embed(texts);
+export async function recall(query, topK = 100, { rootDir = process.cwd() } = {}) {
+  const raw = await readFile(join(rootDir, '_index.json'), 'utf8');
+  const manifests = JSON.parse(raw);
+  if (manifests.length === 0) return [];
 
-  const records = manifests.map((m, i) => ({
-    id: m.id,
-    text: texts[i],
-    vector: vecs[i],
-    manifest: JSON.stringify(m),
-  }));
+  const queryTokens = tokenize(query);
+  if (queryTokens.length === 0) return manifests.slice(0, topK);
 
-  const dbPath = join(rootDir, 'skills.lance');
-  const db = await connect(dbPath);
-  const existing = await db.tableNames();
-  if (existing.includes(TABLE_NAME)) await db.dropTable(TABLE_NAME);
-  const table = await db.createTable(TABLE_NAME, records);
+  const docs = manifests.map(m => ({ m, tokens: tokenize(manifestText(m)) }));
 
-  // Build FTS index for BM25 recall and HNSW index for sub-10ms ANN
-  await table.createIndex('text', { config: Index.fts() });
-  await table.createIndex('vector', {
-    config: Index.hnswSq({ m: HNSW_M, efConstruction: HNSW_EF_CONSTRUCTION }),
+  const N = docs.length;
+  const avgdl = docs.reduce((s, d) => s + d.tokens.length, 0) / N;
+
+  const df = new Map();
+  for (const { tokens } of docs) {
+    for (const t of new Set(tokens)) df.set(t, (df.get(t) ?? 0) + 1);
+  }
+  const idf = t => Math.log((N - (df.get(t) ?? 0) + 0.5) / ((df.get(t) ?? 0) + 0.5) + 1);
+
+  const scored = docs.map(({ m, tokens }) => {
+    const tf = new Map();
+    for (const t of tokens) tf.set(t, (tf.get(t) ?? 0) + 1);
+    const dl = tokens.length;
+    let score = 0;
+    for (const q of queryTokens) {
+      const f = tf.get(q) ?? 0;
+      if (f === 0) continue;
+      score += idf(q) * (f * (BM25_K1 + 1)) / (f + BM25_K1 * (1 - BM25_B + BM25_B * dl / avgdl));
+    }
+    return { m, score };
   });
 
-  // Warm-start: cache open table so first recall() skips reconnect overhead
-  _tableCache.set(dbPath, table);
-
-  return { count: records.length };
-}
-
-export async function recall(query, topK = 100, { rootDir = process.cwd(), embedFn = null } = {}) {
-  const embed = embedFn ?? defaultEmbedFn;
-  const [qVec] = await embed([query]);
-
-  // Reuse warm table handle; fall back to fresh connect on first call
-  const dbPath = join(rootDir, 'skills.lance');
-  let table = _tableCache.get(dbPath);
-  if (!table) {
-    const db = await connect(dbPath);
-    table = await db.openTable(TABLE_NAME);
-    _tableCache.set(dbPath, table);
-  }
-  const fetchK = Math.min(Math.ceil(topK * 2), 500);
-
-  const [annRows, ftsRows] = await Promise.all([
-    table.search(qVec).limit(fetchK).toArray(),
-    table.query().nearestToText(query).limit(fetchK).toArray(),
-  ]);
-
-  return rrfFuse(annRows, ftsRows, topK);
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+    .map(s => s.m);
 }
