@@ -13,6 +13,10 @@
 
 export const QUARANTINE_THRESHOLD = 0.4;
 
+// Skills scoring below this threshold are tombstoned — permanently retired from
+// the live index and logged to skills/_slop_blocklist.json for public audit.
+export const TOMBSTONE_THRESHOLD = 0.2;
+
 // Boilerplate n-gram patterns mined from known templated skills
 export const BOILERPLATE_PATTERNS = [
   /\bthis (tool|skill|assistant) (helps|allows|enables|provides)\b/i,
@@ -157,5 +161,31 @@ export function computeSlopScore({
     Object.entries(WEIGHTS).reduce((sum, [k, w]) => sum + w * signals[k], 0) * 100,
   ) / 100;
 
-  return { slopScore, signals, quarantined: slopScore < QUARANTINE_THRESHOLD };
+  return {
+    slopScore,
+    signals,
+    quarantined: slopScore < QUARANTINE_THRESHOLD,
+    tombstoned:  slopScore < TOMBSTONE_THRESHOLD,
+  };
+}
+
+/**
+ * Build a tombstone record suitable for appending to skills/_slop_blocklist.json.
+ *
+ * @param {string} skillId
+ * @param {object} manifest
+ * @param {{ slopScore: number, signals: object }} slopResult
+ * @param {string} [reason]
+ * @returns {object}
+ */
+export function createTombstoneRecord(skillId, manifest, slopResult, reason = null) {
+  return {
+    skill_id:      skillId,
+    name:          manifest?.name ?? skillId,
+    registry:      manifest?.registry ?? null,
+    slop_score:    slopResult.slopScore,
+    signals:       slopResult.signals,
+    reason:        reason ?? `slop_score ${slopResult.slopScore} below tombstone threshold ${TOMBSTONE_THRESHOLD}`,
+    tombstoned_at: new Date().toISOString(),
+  };
 }

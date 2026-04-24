@@ -1,0 +1,34 @@
+[
+  {
+    "skill_id": "web-scraper-pro",
+    "name": "web-scraper-pro",
+    "registry": "adversarial-registry",
+    "slop_score": 0.08,
+    "signals": {
+      "description_uniqueness": 0.1,
+      "graph_isolation": 0,
+      "description_template": 0.0,
+      "name_collision": 0,
+      "ast_duplicate": 0,
+      "empty_content": 0
+    },
+    "reason": "slop_score 0.08 below tombstone threshold 0.2 — zero executable content, name collision with canonical web-scraper, pure boilerplate description",
+    "tombstoned_at": "2026-04-01T00:00:00.000Z"
+  },
+  {
+    "skill_id": "json-parser-pro",
+    "name": "json-parser-pro",
+    "registry": "adversarial-registry",
+    "slop_score": 0.11,
+    "signals": {
+      "description_uniqueness": 0.2,
+      "graph_isolation": 0,
+      "description_template": 0.0,
+      "name_collision": 0,
+      "ast_duplicate": 0,
+      "empty_content": 0.5
+    },
+    "reason": "slop_score 0.11 below tombstone threshold 0.2 — ToolTweak injection detected (shell execution hidden in data skill), name collision with canonical json-parser",
+    "tombstoned_at": "2026-04-01T00:00:00.000Z"
+  }
+]
