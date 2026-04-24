@@ -56,7 +56,9 @@ export function expandSubgraph(G, seeds, {
         if (visited.has(target)) return;
 
         const slopScore = G.getNodeAttribute(target, 'slopScore') ?? 1;
-        if (slopScore < slopFilter) return;
+        // depends_on edges are mandatory — always follow them regardless of slop score
+        // to prevent Composition Deadlock (a required dependency silently dropped)
+        if (attrs.relation !== 'depends_on' && slopScore < slopFilter) return;
 
         if (dedupeBy) {
           const cid = G.getNodeAttribute(target, dedupeBy) ?? null;
@@ -78,4 +80,27 @@ export function expandSubgraph(G, seeds, {
   }
 
   return { nodes: resultNodes, edges: resultEdges };
+}
+
+/**
+ * Stage 3 pipeline entry point: expand the SKG from Stage 2 top-K candidates.
+ * Seeds = candidate .id values that exist in the graph.
+ * Follows only depends_on + complements (co_used_with excluded at this stage).
+ *
+ * @param {import('graphology').DirectedGraph} G
+ * @param {Array<{id: string}>} candidates  manifests from Stage 2 reranker output
+ * @param {{ tokenBudget?: number, slopFilter?: number, dedupeBy?: string|null }} opts
+ */
+export function walkFromCandidates(G, candidates, {
+  tokenBudget = 4000,
+  slopFilter = 0,
+  dedupeBy = 'canonicalId',
+} = {}) {
+  const seeds = candidates.map((m) => m.id).filter((id) => G.hasNode(id));
+  return expandSubgraph(G, seeds, {
+    edgeTypes: ['depends_on', 'complements'],
+    tokenBudget,
+    slopFilter,
+    dedupeBy,
+  });
 }

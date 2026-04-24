@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { DirectedGraph } from 'graphology';
-import { expandSubgraph } from '../../src/kg/walk.js';
+import { expandSubgraph, walkFromCandidates } from '../../src/kg/walk.js';
 
 function makeGraph(nodes, edges = []) {
   const G = new DirectedGraph();
@@ -114,14 +114,25 @@ describe('expandSubgraph', () => {
     assert.ok(nodes.includes('c'));
   });
 
-  test('slop filter skips low-slopScore nodes', () => {
+  test('slop filter skips low-slopScore nodes on non-required edges', () => {
     const G = makeGraph(
       [['a', {}], ['b', { slopScore: 0.2 }], ['c', { slopScore: 0.9 }]],
-      [['a', 'b', 'depends_on'], ['a', 'c', 'depends_on']],
+      [['a', 'b', 'complements'], ['a', 'c', 'complements']],
     );
     const { nodes } = expandSubgraph(G, ['a'], { slopFilter: 0.5 });
     assert.ok(!nodes.includes('b'));
     assert.ok(nodes.includes('c'));
+  });
+
+  test('Composition Deadlock fix: depends_on bypasses slopFilter', () => {
+    // b has low slop but is a hard dependency — must be included
+    const G = makeGraph(
+      [['a', {}], ['b', { slopScore: 0.1 }], ['c', { slopScore: 0.1 }]],
+      [['a', 'b', 'depends_on'], ['a', 'c', 'complements']],
+    );
+    const { nodes } = expandSubgraph(G, ['a'], { slopFilter: 0.5 });
+    assert.ok(nodes.includes('b'), 'depends_on must not be filtered by slopFilter');
+    assert.ok(!nodes.includes('c'), 'complements still filtered by slopFilter');
   });
 
   test('edges include correct source, target, relation', () => {
@@ -134,5 +145,66 @@ describe('expandSubgraph', () => {
     assert.equal(edges[0].source, 'a');
     assert.equal(edges[0].target, 'b');
     assert.equal(edges[0].relation, 'complements');
+  });
+});
+
+describe('walkFromCandidates', () => {
+  test('maps candidate objects to seed IDs', () => {
+    const G = makeGraph(
+      [['a', {}], ['b', {}]],
+      [['a', 'b', 'depends_on']],
+    );
+    const { nodes } = walkFromCandidates(G, [{ id: 'a' }]);
+    assert.ok(nodes.includes('a'));
+    assert.ok(nodes.includes('b'));
+  });
+
+  test('ignores candidate IDs not present in graph', () => {
+    const G = makeGraph([['a', {}]]);
+    const { nodes } = walkFromCandidates(G, [{ id: 'a' }, { id: 'nonexistent' }]);
+    assert.ok(nodes.includes('a'));
+    assert.ok(!nodes.includes('nonexistent'));
+  });
+
+  test('empty candidates returns empty', () => {
+    const G = makeGraph([['a', {}]]);
+    const { nodes } = walkFromCandidates(G, []);
+    assert.equal(nodes.length, 0);
+  });
+
+  test('traverses depends_on and complements but not co_used_with', () => {
+    const G = makeGraph(
+      [['a', {}], ['b', {}], ['c', {}], ['d', {}]],
+      [
+        ['a', 'b', 'depends_on'],
+        ['a', 'c', 'complements'],
+        ['a', 'd', 'co_used_with'],
+      ],
+    );
+    const { nodes } = walkFromCandidates(G, [{ id: 'a' }]);
+    assert.ok(nodes.includes('b'), 'depends_on should be traversed');
+    assert.ok(nodes.includes('c'), 'complements should be traversed');
+    assert.ok(!nodes.includes('d'), 'co_used_with must not be traversed');
+  });
+
+  test('respects tokenBudget', () => {
+    const nodeList = Array.from({ length: 20 }, (_, i) => [`n${i}`, {}]);
+    const edgeList = Array.from({ length: 19 }, (_, i) => [`n${i}`, `n${i + 1}`, 'depends_on']);
+    const G = makeGraph(nodeList, edgeList);
+    const { nodes: result } = walkFromCandidates(G, [{ id: 'n0' }], { tokenBudget: 5 });
+    assert.ok(result.length < 20);
+    assert.ok(result.includes('n0'));
+  });
+
+  test('multiple candidates each seeded', () => {
+    const G = makeGraph(
+      [['a', {}], ['b', {}], ['c', {}], ['d', {}]],
+      [['a', 'c', 'depends_on'], ['b', 'd', 'depends_on']],
+    );
+    const { nodes } = walkFromCandidates(G, [{ id: 'a' }, { id: 'b' }]);
+    assert.ok(nodes.includes('a'));
+    assert.ok(nodes.includes('b'));
+    assert.ok(nodes.includes('c'));
+    assert.ok(nodes.includes('d'));
   });
 });
