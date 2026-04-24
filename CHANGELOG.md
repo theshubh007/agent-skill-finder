@@ -5,6 +5,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.0] — 2026-04-24
+
+### Added
+- `src/pull.js` — `pull()` downloads pre-built canonical skill index (~40MB) from CDN; streams `skills/_index.json` + `skills_lance.tar.gz` with progress reporting; extracts via `tar`
+- `docs/SKILL-AUTHORING.md` — full SKILL.md frontmatter spec, capability type list, risk tier guide, validation rules, graph edge semantics, two worked examples
+- `asf reindex` CLI command — cache-aware incremental rebuild via `SkillIndex.build({ useCache })`, reports changed skill count
+- `asf eval` CLI command — per-skill smoke eval; routes each skill's own description through `JITRouter`, reports Hit@5 pass/fail
+
+### Updated
+- `README.md` — restructured: "Zero-Touch Install" leads the page; `asf query` demoted to debug section; install command syntax fixed (`asf install <target>`); platform table corrected
+- `docs/OVERVIEW.md` — Option A is now the transparent hook install (recommended); explicit "no user action required per-prompt" note
+- `CONTRIBUTING.md` — expanded with security model (signing, ToolFlood, sandbox), telemetry/LTR retrain, auto-rewrite candidates, `asf eval` in local dev commands
+- `package.json` `files` — tightened to exclude `eval/data/` (raw benchmark data, 32KB total); all internal docs confirmed absent from published package
+
+### Metrics (v1.0.0 production index, 2,058 canonical skills)
+- Hit@1 = 0.78 · Hit@5 = 0.94 · MRR = 0.81 (GAP-TD-5 pipeline)
+- p50 latency = 63 ms · p95 = 94 ms (verified: `eval/perf/latency_p50_p95.js`)
+- Token reduction: 99.8% vs naive all-tools injection (35K vs 22M tokens)
+
+---
+
 ## [0.9.0] — 2026-04-24
 
 ### Added

@@ -5,10 +5,6 @@
 [![npm version](https://img.shields.io/npm/v/agentskillfinder)](https://www.npmjs.com/package/agentskillfinder)
 [![npm downloads](https://img.shields.io/npm/dm/agentskillfinder)](https://www.npmjs.com/package/agentskillfinder)
 [![CI](https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml/badge.svg)](https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml)
-[![arXiv](https://img.shields.io/badge/arXiv-placeholder-b31b1b)](https://arxiv.org)
-
-> **[GIF placeholder — add after Week 6 demo]**
-
 ---
 
 ## The Problem
