@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { installClaude, installGemini, installCodex, install } from '../src/installer.js';
+import { installClaude, installGemini, installCodex, installCursor, install } from '../src/installer.js';
 
 // ── injectable in-memory fs ───────────────────────────────────────────────────
 
@@ -159,6 +159,48 @@ describe('installCodex', () => {
   });
 });
 
+// ── cursor target ─────────────────────────────────────────────────────────────
+
+describe('installCursor', () => {
+  test('writes asf.mdc to .cursor/rules/', async () => {
+    const fs = makeFs();
+    const result = await installCursor({ mdcPath: '/tmp/.cursor/rules/asf.mdc', fs });
+    assert.ok(fs.store['/tmp/.cursor/rules/asf.mdc'].includes('agentskillfinder'));
+    assert.equal(result.alreadyInstalled, false);
+  });
+
+  test('mdc file has frontmatter with alwaysApply true', async () => {
+    const fs = makeFs();
+    await installCursor({ mdcPath: '/tmp/.cursor/rules/asf.mdc', fs });
+    assert.ok(fs.store['/tmp/.cursor/rules/asf.mdc'].includes('alwaysApply: true'));
+  });
+
+  test('uses custom asfBin in mdc content', async () => {
+    const fs = makeFs();
+    await installCursor({ mdcPath: '/tmp/.cursor/rules/asf.mdc', asfBin: '/opt/asf/bin/asf', fs });
+    assert.ok(fs.store['/tmp/.cursor/rules/asf.mdc'].includes('/opt/asf/bin/asf'));
+  });
+
+  test('returns alreadyInstalled true when mdc already has agentskillfinder', async () => {
+    const fs = makeFs({ '/tmp/.cursor/rules/asf.mdc': '# agentskillfinder\nalready here' });
+    const result = await installCursor({ mdcPath: '/tmp/.cursor/rules/asf.mdc', fs });
+    assert.equal(result.alreadyInstalled, true);
+  });
+
+  test('does not overwrite existing mdc when alreadyInstalled', async () => {
+    const original = '# agentskillfinder\noriginal content';
+    const fs = makeFs({ '/tmp/.cursor/rules/asf.mdc': original });
+    await installCursor({ mdcPath: '/tmp/.cursor/rules/asf.mdc', fs });
+    assert.equal(fs.store['/tmp/.cursor/rules/asf.mdc'], original);
+  });
+
+  test('returns path in result', async () => {
+    const fs = makeFs();
+    const result = await installCursor({ mdcPath: '/proj/.cursor/rules/asf.mdc', fs });
+    assert.equal(result.path, '/proj/.cursor/rules/asf.mdc');
+  });
+});
+
 describe('install dispatcher', () => {
   test('install claude delegates to installClaude', async () => {
     const fs = makeFs();
@@ -181,6 +223,12 @@ describe('install dispatcher', () => {
       fs,
     });
     assert.ok(fs.store['/tmp/AGENTS.md'].includes('agentskillfinder'));
+  });
+
+  test('install cursor delegates to installCursor', async () => {
+    const fs = makeFs();
+    const result = await install('cursor', { mdcPath: '/tmp/.cursor/rules/asf.mdc', fs });
+    assert.ok(fs.store['/tmp/.cursor/rules/asf.mdc'].includes('agentskillfinder'));
   });
 
   test('install unknown target throws', async () => {

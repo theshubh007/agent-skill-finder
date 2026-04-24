@@ -147,6 +147,48 @@ export async function installCodex({
   return { paths: [agentsMdPath, hooksJsonPath], alreadyInstalled: false };
 }
 
+// ── Cursor target ─────────────────────────────────────────────────────────────
+
+const CURSOR_MDC = (asfBin) => `---
+description: agentskillfinder — JIT skill routing, intercepts tool calls through 4-stage pipeline
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# AgentSkillFinder (ASF) Routing
+
+Before selecting any tool, run:
+
+\`\`\`bash
+${asfBin} query "<describe what you need to accomplish>"
+\`\`\`
+
+Use the returned SkillBundle's **composition plan** to sequence tool calls in dependency order.
+Respect any **deadlock** or **I/O mismatch** warnings in the plan output.
+`;
+
+/**
+ * Write ASF routing rule to .cursor/rules/asf.mdc.
+ *
+ * @param {{ mdcPath?: string, asfBin?: string, fs?: object }} opts
+ * @returns {Promise<{ path: string, alreadyInstalled: boolean }>}
+ */
+export async function installCursor({
+  mdcPath = join(process.cwd(), '.cursor', 'rules', 'asf.mdc'),
+  asfBin = 'asf',
+  fs = null,
+} = {}) {
+  const existing = await readOrEmpty(mdcPath, fs);
+
+  if (existing.includes('agentskillfinder')) {
+    return { path: mdcPath, alreadyInstalled: true };
+  }
+
+  await ensureWrite(mdcPath, CURSOR_MDC(asfBin), fs);
+
+  return { path: mdcPath, alreadyInstalled: false };
+}
+
 // ── Main install dispatcher ───────────────────────────────────────────────────
 
 /**
@@ -161,6 +203,7 @@ export async function install(target, opts = {}) {
     case 'claude':  return installClaude(opts);
     case 'gemini':  return installGemini(opts);
     case 'codex':   return installCodex(opts);
+    case 'cursor':  return installCursor(opts);
     default:        throw new Error(`Unknown install target: ${target}`);
   }
 }
