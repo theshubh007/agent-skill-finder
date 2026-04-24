@@ -1,0 +1,100 @@
+{"id":1,"query":"parse command line arguments from argv array","relevant":["parse-args","argument-parser"],"category":"cli"}
+{"id":2,"query":"search the web for recent news about a topic","relevant":["web-search","news-fetcher"],"category":"web"}
+{"id":3,"query":"parse JSON string into structured object","relevant":["json-parse","json-parser"],"category":"data-transform"}
+{"id":4,"query":"read a file from the filesystem","relevant":["file-read","read-file"],"category":"file-io"}
+{"id":5,"query":"write content to a file on disk","relevant":["file-write","write-file"],"category":"file-io"}
+{"id":6,"query":"run a bash shell command and capture output","relevant":["bash-exec","shell-command"],"category":"code-execution"}
+{"id":7,"query":"fetch data from an HTTP REST endpoint","relevant":["http-fetch","api-request"],"category":"retrieval"}
+{"id":8,"query":"validate JSON against a schema","relevant":["json-schema-validator","schema-validate"],"category":"validation"}
+{"id":9,"query":"convert CSV data to JSON records","relevant":["csv-to-json","csv-parser"],"category":"data-transform"}
+{"id":10,"query":"compute SHA256 hash of a string","relevant":["sha256","hash-string"],"category":"crypto"}
+{"id":11,"query":"send an email via SMTP","relevant":["send-email","smtp-sender"],"category":"communication"}
+{"id":12,"query":"list files in a directory recursively","relevant":["list-files","dir-walker"],"category":"file-io"}
+{"id":13,"query":"extract text from a PDF document","relevant":["pdf-extract","pdf-text"],"category":"document"}
+{"id":14,"query":"generate a UUID v4","relevant":["uuid-generate","uuid-v4"],"category":"utility"}
+{"id":15,"query":"encode a string to base64","relevant":["base64-encode","base64"],"category":"data-transform"}
+{"id":16,"query":"decode base64 back to a string","relevant":["base64-decode","base64"],"category":"data-transform"}
+{"id":17,"query":"resize an image to specified dimensions","relevant":["image-resize","resize-image"],"category":"image"}
+{"id":18,"query":"convert Markdown to HTML","relevant":["markdown-to-html","md-render"],"category":"document"}
+{"id":19,"query":"query a SQLite database with SQL","relevant":["sqlite-query","sql-exec"],"category":"database"}
+{"id":20,"query":"clone a git repository","relevant":["git-clone","repo-clone"],"category":"version-control"}
+{"id":21,"query":"get git diff between two commits","relevant":["git-diff","commit-diff"],"category":"version-control"}
+{"id":22,"query":"install npm packages from package.json","relevant":["npm-install","package-install"],"category":"dependency"}
+{"id":23,"query":"transpile TypeScript to JavaScript","relevant":["tsc-compile","ts-transpile"],"category":"code-execution"}
+{"id":24,"query":"run Jest unit tests and report results","relevant":["jest-run","test-runner"],"category":"testing"}
+{"id":25,"query":"lint JavaScript code with ESLint","relevant":["eslint-run","js-lint"],"category":"code-quality"}
+{"id":26,"query":"format Python code with Black","relevant":["black-format","py-format"],"category":"code-quality"}
+{"id":27,"query":"search for a pattern in files using grep","relevant":["file-grep","text-search"],"category":"file-io"}
+{"id":28,"query":"compress a directory into a zip archive","relevant":["zip-create","archive-compress"],"category":"file-io"}
+{"id":29,"query":"extract a zip archive to a directory","relevant":["zip-extract","archive-extract"],"category":"file-io"}
+{"id":30,"query":"download a file from a URL to disk","relevant":["download-file","url-download"],"category":"retrieval"}
+{"id":31,"query":"upload a file to S3 bucket","relevant":["s3-upload","aws-s3-put"],"category":"cloud"}
+{"id":32,"query":"list objects in an S3 bucket","relevant":["s3-list","aws-s3-list"],"category":"cloud"}
+{"id":33,"query":"get environment variable value","relevant":["env-get","read-env"],"category":"utility"}
+{"id":34,"query":"set or update an environment variable","relevant":["env-set","write-env"],"category":"utility"}
+{"id":35,"query":"parse YAML frontmatter from a markdown file","relevant":["yaml-parse","frontmatter-extract"],"category":"data-transform"}
+{"id":36,"query":"generate a random password with special characters","relevant":["password-gen","random-string"],"category":"crypto"}
+{"id":37,"query":"tokenize text into sentences","relevant":["sentence-tokenize","nlp-tokenize"],"category":"nlp"}
+{"id":38,"query":"detect language of a text string","relevant":["lang-detect","language-id"],"category":"nlp"}
+{"id":39,"query":"translate text from English to Spanish","relevant":["translate","text-translate"],"category":"nlp"}
+{"id":40,"query":"summarize a long document into key points","relevant":["summarize","text-summary"],"category":"nlp"}
+{"id":41,"query":"extract named entities from text","relevant":["ner-extract","entity-extract"],"category":"nlp"}
+{"id":42,"query":"embed a text string into a vector","relevant":["text-embed","embed-text"],"category":"ml"}
+{"id":43,"query":"find similar documents by cosine similarity","relevant":["cosine-search","vector-search"],"category":"ml"}
+{"id":44,"query":"run a Python script and capture stdout","relevant":["python-exec","run-python"],"category":"code-execution"}
+{"id":45,"query":"execute a Node.js script","relevant":["node-exec","run-node"],"category":"code-execution"}
+{"id":46,"query":"start a local HTTP server on a port","relevant":["http-server","local-serve"],"category":"web"}
+{"id":47,"query":"make a POST request with JSON body","relevant":["http-post","api-post"],"category":"retrieval"}
+{"id":48,"query":"parse HTML and extract links","relevant":["html-parse","link-extract"],"category":"web"}
+{"id":49,"query":"take a screenshot of a webpage","relevant":["screenshot","page-capture"],"category":"web"}
+{"id":50,"query":"format a date into ISO 8601 string","relevant":["date-format","iso-date"],"category":"utility"}
+{"id":51,"query":"calculate the difference between two dates","relevant":["date-diff","time-delta"],"category":"utility"}
+{"id":52,"query":"merge two JSON objects recursively","relevant":["json-merge","deep-merge"],"category":"data-transform"}
+{"id":53,"query":"flatten a nested array","relevant":["array-flatten","flatten"],"category":"data-transform"}
+{"id":54,"query":"sort an array of objects by a key","relevant":["array-sort","object-sort"],"category":"data-transform"}
+{"id":55,"query":"group an array of objects by a field","relevant":["group-by","array-group"],"category":"data-transform"}
+{"id":56,"query":"deduplicate an array by a key","relevant":["array-dedup","unique-by"],"category":"data-transform"}
+{"id":57,"query":"deep clone a JavaScript object","relevant":["deep-clone","object-clone"],"category":"utility"}
+{"id":58,"query":"retry a failing async operation with exponential backoff","relevant":["retry","backoff-retry"],"category":"utility"}
+{"id":59,"query":"rate-limit calls to an external API","relevant":["rate-limiter","api-throttle"],"category":"utility"}
+{"id":60,"query":"parse a URL and extract query parameters","relevant":["url-parse","query-params"],"category":"web"}
+{"id":61,"query":"build a URL from base and query params","relevant":["url-build","url-construct"],"category":"web"}
+{"id":62,"query":"watch a directory for file changes","relevant":["file-watch","dir-watch"],"category":"file-io"}
+{"id":63,"query":"diff two text files line by line","relevant":["text-diff","file-diff"],"category":"file-io"}
+{"id":64,"query":"render a Jinja2 or Handlebars template","relevant":["template-render","handlebars"],"category":"data-transform"}
+{"id":65,"query":"generate a PDF from HTML content","relevant":["html-to-pdf","pdf-generate"],"category":"document"}
+{"id":66,"query":"extract tables from a PDF","relevant":["pdf-table-extract","table-parse"],"category":"document"}
+{"id":67,"query":"OCR an image to extract text","relevant":["ocr","image-to-text"],"category":"image"}
+{"id":68,"query":"classify an image using a pre-trained model","relevant":["image-classify","vision-classify"],"category":"ml"}
+{"id":69,"query":"detect objects in an image","relevant":["object-detect","yolo-detect"],"category":"ml"}
+{"id":70,"query":"fine-tune a language model on custom data","relevant":["llm-finetune","model-train"],"category":"ml"}
+{"id":71,"query":"call the OpenAI Chat Completions API","relevant":["openai-chat","gpt-complete"],"category":"llm"}
+{"id":72,"query":"call the Anthropic Claude messages API","relevant":["claude-messages","anthropic-api"],"category":"llm"}
+{"id":73,"query":"stream tokens from a language model","relevant":["llm-stream","token-stream"],"category":"llm"}
+{"id":74,"query":"parse a Python AST from source code","relevant":["py-ast-parse","ast-extract"],"category":"code-analysis"}
+{"id":75,"query":"extract imports from a JavaScript file","relevant":["js-imports","import-extract"],"category":"code-analysis"}
+{"id":76,"query":"generate TypeScript types from JSON schema","relevant":["json-schema-to-ts","type-gen"],"category":"codegen"}
+{"id":77,"query":"scaffold a new Next.js project","relevant":["nextjs-scaffold","create-next"],"category":"codegen"}
+{"id":78,"query":"build a Docker image from a Dockerfile","relevant":["docker-build","container-build"],"category":"devops"}
+{"id":79,"query":"push a Docker image to a registry","relevant":["docker-push","container-push"],"category":"devops"}
+{"id":80,"query":"deploy a service to Kubernetes","relevant":["k8s-deploy","kubectl-apply"],"category":"devops"}
+{"id":81,"query":"read a secret from AWS Secrets Manager","relevant":["aws-secret","secrets-read"],"category":"cloud"}
+{"id":82,"query":"publish a message to an SNS topic","relevant":["sns-publish","aws-sns"],"category":"cloud"}
+{"id":83,"query":"query DynamoDB with a key","relevant":["dynamodb-get","dynamo-query"],"category":"database"}
+{"id":84,"query":"insert a record into PostgreSQL","relevant":["pg-insert","postgres-write"],"category":"database"}
+{"id":85,"query":"run a database migration with Prisma","relevant":["prisma-migrate","db-migrate"],"category":"database"}
+{"id":86,"query":"search Elasticsearch for matching documents","relevant":["es-search","elastic-query"],"category":"database"}
+{"id":87,"query":"publish a message to a Kafka topic","relevant":["kafka-publish","kafka-produce"],"category":"messaging"}
+{"id":88,"query":"consume messages from a Kafka topic","relevant":["kafka-consume","kafka-subscribe"],"category":"messaging"}
+{"id":89,"query":"send a Slack message to a channel","relevant":["slack-send","slack-post"],"category":"communication"}
+{"id":90,"query":"create a GitHub issue programmatically","relevant":["github-issue","gh-create-issue"],"category":"version-control"}
+{"id":91,"query":"open a pull request on GitHub","relevant":["github-pr","gh-create-pr"],"category":"version-control"}
+{"id":92,"query":"parse a scientific paper abstract for keywords","relevant":["abstract-parse","paper-keywords"],"category":"scientific"}
+{"id":93,"query":"fetch PubMed articles matching a search query","relevant":["pubmed-search","ncbi-fetch"],"category":"scientific"}
+{"id":94,"query":"plot a time series chart and save as PNG","relevant":["plot-timeseries","chart-png"],"category":"visualization"}
+{"id":95,"query":"generate a bar chart from tabular data","relevant":["bar-chart","chart-generate"],"category":"visualization"}
+{"id":96,"query":"convert audio file to text transcription","relevant":["audio-transcribe","speech-to-text"],"category":"audio"}
+{"id":97,"query":"synthesize speech from text","relevant":["text-to-speech","tts"],"category":"audio"}
+{"id":98,"query":"verify a BibTeX citation is properly formatted","relevant":["bibtex-validate","citation-check"],"category":"scientific"}
+{"id":99,"query":"compute cosine similarity between two text strings","relevant":["text-similarity","cosine-sim"],"category":"ml"}
+{"id":100,"query":"extract structured data from a webpage using CSS selectors","relevant":["web-scrape","css-extract"],"category":"web"}
