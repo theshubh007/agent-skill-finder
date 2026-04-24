@@ -2,12 +2,14 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 import { loadClaudeSkills } from '../../src/adapters/claude_skills.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_ROOT = join(__dirname, '..', '..', '..', 'claude-skills');
+const SKIP = !existsSync(REGISTRY_ROOT);
 
-describe('claude-skills adapter', () => {
+describe('claude-skills adapter', { skip: SKIP ? 'sibling registry not present' : false }, () => {
   test('loads skills without throwing', async () => {
     const manifests = await loadClaudeSkills(REGISTRY_ROOT);
     assert.ok(manifests.length > 0, 'expected at least one skill');

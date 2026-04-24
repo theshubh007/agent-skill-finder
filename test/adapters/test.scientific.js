@@ -2,12 +2,14 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 import { loadScientificSkills } from '../../src/adapters/scientific.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REGISTRY_ROOT = join(__dirname, '..', '..', '..', 'scientific-agent-skills');
+const SKIP = !existsSync(REGISTRY_ROOT);
 
-describe('scientific-agent-skills adapter', () => {
+describe('scientific-agent-skills adapter', { skip: SKIP ? 'sibling registry not present' : false }, () => {
   test('loads skills without throwing', async () => {
     const manifests = await loadScientificSkills(REGISTRY_ROOT);
     assert.ok(manifests.length > 0, 'expected at least one skill');

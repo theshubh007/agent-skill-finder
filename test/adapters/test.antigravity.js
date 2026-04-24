@@ -2,14 +2,16 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
 import { loadAntigravitySkills } from '../../src/adapters/antigravity.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Resolve to the sibling registry dir two levels up from agent-skill-finder
 const REGISTRY_ROOT = join(__dirname, '..', '..', '..', 'antigravity-awesome-skills');
+const SKIP = !existsSync(REGISTRY_ROOT);
 
-describe('antigravity adapter', () => {
+describe('antigravity adapter', { skip: SKIP ? 'sibling registry not present' : false }, () => {
   test('loads skills from real registry without throwing', async () => {
     const manifests = await loadAntigravitySkills(REGISTRY_ROOT);
     assert.ok(manifests.length > 0, 'expected at least one skill');
