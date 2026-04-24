@@ -5,6 +5,9 @@ import { loadClaudeSkills } from './adapters/claude_skills.js';
 import { loadScientificSkills } from './adapters/scientific.js';
 import { loadAwesomeClaudeSkills } from './adapters/awesome_claude.js';
 import { loadMcpServerSkills } from './adapters/mcp_server.js';
+import { buildGraph } from './kg/build.js';
+import { clusterGraph } from './kg/cluster.js';
+import { buildIndex } from './index.js';
 
 /**
  * Built-in registry descriptors keyed by registry name.
@@ -41,7 +44,7 @@ export class SkillIndex {
    * @param {(msg: string) => void} [opts.log]  progress callback
    * @returns {Promise<{skillCount: number, canonicalCount: number, buildTimeMs: number}>}
    */
-  static async build({ sourcesRoot, sources, outputDir, log = () => {} }) {
+  static async build({ sourcesRoot, sources, outputDir, embedFn = null, log = () => {} }) {
     const t0 = Date.now();
     const root = resolve(sourcesRoot);
     const outDir = outputDir ? resolve(outputDir) : join(root, '..', 'agent-skill-finder', 'skills');
@@ -95,9 +98,23 @@ export class SkillIndex {
     await writeFile(indexPath, JSON.stringify(canonical, null, 2), 'utf8');
     log(`[index] written → ${indexPath}`);
 
+    // Build SKG from manifest-declared graph edges
+    const G = buildGraph(canonical, []);
+    const { communities } = clusterGraph(G);
+    log(`[skg] ${G.order} nodes, ${G.size} edges, ${communities.size} communities`);
+
+    // Build LanceDB retrieval index (uses injectable embedFn for tests; real model in prod)
+    let lanceCount = 0;
+    if (canonical.length > 0) {
+      const { count } = await buildIndex(canonical, { rootDir: outDir, embedFn });
+      lanceCount = count;
+      log(`[lance] indexed ${lanceCount} skills → ${outDir}/skills.lance`);
+    }
+
     return {
       skillCount: rawCount,
       canonicalCount: canonical.length,
+      communityCount: communities.size,
       buildTimeMs: Date.now() - t0,
     };
   }
