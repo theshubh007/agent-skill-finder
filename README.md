@@ -1,55 +1,42 @@
-# agentskillfinder
+<h1 align="center">agentskillfinder</h1>
 
-**3–5 tools instead of 1,800. ≤65ms. Zero LLM calls in the router.**
+<p align="center">
+  <strong>Routes any task to 3–5 skills instead of hundreds. Zero LLM calls. Zero model downloads.</strong>
+</p>
 
-[![npm version](https://img.shields.io/npm/v/agentskillfinder)](https://www.npmjs.com/package/agentskillfinder)
-[![npm downloads](https://img.shields.io/npm/dm/agentskillfinder)](https://www.npmjs.com/package/agentskillfinder)
-[![CI](https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml/badge.svg)](https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml)
----
+<p align="center">
+  <a href="https://www.npmjs.com/package/agentskillfinder">
+    <img src="https://img.shields.io/npm/v/agentskillfinder" alt="npm version"/>
+  </a>
+  <a href="https://www.npmjs.com/package/agentskillfinder">
+    <img src="https://img.shields.io/npm/dm/agentskillfinder" alt="npm downloads"/>
+  </a>
+  <a href="https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml">
+    <img src="https://github.com/shubhamkothiya/agentskillfinder/actions/workflows/ci.yml/badge.svg" alt="CI"/>
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"/>
+  </a>
+  <img src="https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg" alt="Node"/>
+</p>
 
-## The Problem
-
-Production AI CLIs that expose hundreds or thousands of tools hit three structural failure modes at scale:
-
-- **Coupling Lock** — a single god-node (e.g. gemini-cli's `Config`) routes everything; GNCI = 51.1
-- **Fragmentation Collapse** — 788 isolated skill communities with 769 unnamed; CFI = 41.5 (opencode)
-- **Composition Deadlock** — planner picks skill A but its dependency B falls below the retrieval threshold
-
-Neither failure can be fixed by better retrieval alone. They require structural changes — a knowledge graph that makes skill relationships explicit, and a router that traverses it.
-
-AgentSkillFinder (ASF) solves this.
-
----
-
-## Benchmark — GAP-TD-5 vs Baselines
-
-Evaluated on `sample_100.jsonl` (100 tasks × 20 categories, deduplicated with SimHash).
-
-| Baseline | Hit@1 | Hit@5 | Hit@20 | MRR | Latency p50 | Latency p95 |
-|---|---|---|---|---|---|---|
-| Static-100 | 0.04 | 0.21 | 0.41 | 0.08 | 1 ms | 2 ms |
-| Keyword-0 | 0.51 | 0.72 | 0.83 | 0.58 | 4 ms | 8 ms |
-| Semantic-5 | 0.71 | 0.89 | — | 0.74 | 47 ms | 71 ms |
-| **GAP-TD-5 (ours)** | **0.78** | **0.94** | **0.97** | **0.81** | **63 ms ✓** | **94 ms ✓** |
-
-GAP-TD-5 uses BM25 + BGE-small recall → cross-encoder rerank → graph BFS. No LLM calls.
-p50 ≤65ms target **verified** against 2,058-skill production index (`eval/perf/latency_p50_p95.js`).
+<p align="center">
+  <a href="#quick-install">Quick Install</a> •
+  <a href="#sdk-quickstart">SDK</a> •
+  <a href="#how-it-works">How It Works</a> •
+  <a href="#cli-reference">CLI</a> •
+  <a href="#platform-support">Platforms</a>
+</p>
 
 ---
 
-## Token Savings
-
-| Strategy | Context tokens injected |
-|---|---|
-| Naive (inject all tools) | 22,000,000 |
-| Anthropic progressive-disclosure | 460,000 |
-| **ASF (this library)** | **35,000** |
+AI CLIs that expose hundreds of tools in every prompt waste context window, slow the model down, and make it harder to pick the right tool. AgentSkillFinder (ASF) routes each task to the 3–5 most relevant skills before the model ever sees the tool list — using pure BM25 keyword recall, Jaccard reranking, and a dependency-aware knowledge graph. No API keys. No model downloads. Runs entirely offline.
 
 ---
 
-## Zero-Touch Install (Recommended)
+## Quick Install
 
-Run once. Never think about it again.
+One command. ASF installs a hook into your AI CLI and routes every prompt automatically from that point on.
 
 ```bash
 npx agentskillfinder install claude   # Claude Code
@@ -58,29 +45,30 @@ npx agentskillfinder install codex    # OpenAI Codex
 npx agentskillfinder install cursor   # Cursor
 ```
 
-After install, **every prompt is automatically routed** — ASF intercepts tool calls before they reach the model and injects the 3–5 most relevant skills. You never run `asf query` manually. The hook runs in the background on every invocation.
+Then build a skill index from your local skill registries:
+
+```bash
+asf ingest --sources ./path/to/skills --out ~/.asf
+```
+
+That's it. Every subsequent prompt is intercepted by ASF — the model sees only the relevant skills, not the full catalog.
 
 ---
 
-## SDK Quickstart (library / agent builders)
+## SDK Quickstart
 
-> Building your own AI CLI or agent framework and want to embed ASF programmatically?
-> Use the SDK below. For Claude Code / Gemini CLI / opencode end users,
-> [Zero-Touch Install](#zero-touch-install-recommended) above is all you need.
+For agent builders embedding ASF programmatically:
 
-```typescript
-import { SkillIndex } from 'agentskillfinder/skill-index';
+```javascript
+import { buildIndex } from 'agentskillfinder';
 import { JITRouter } from 'agentskillfinder/router';
 
-// build once (or pull pre-built index from CDN)
-await SkillIndex.build({
-  sources: ['./registries/antigravity', './registries/claude-skills'],
-  outputDir: './compiled_skills',
-});
+// build once from your skill manifests
+await buildIndex(manifests, { rootDir: './compiled_skills' });
 
 // route at inference time — no LLM calls
 const router = new JITRouter({ indexDir: './compiled_skills' });
-const bundle = await router.find({
+const { bundle, timings } = await router.find({
   task: 'find PD-L1 papers and produce a Nature-style figure',
   tokenBudget: 4000,
   maxSkills: 5,
@@ -93,68 +81,22 @@ const tools = bundle.toAnthropic();   // ToolParam[]
 // bundle.toMcp()                     // MCP Tool[]
 ```
 
-**Output:**
-```
-Stages: recall(12ms) + rerank(47ms) + graph(3ms) + hydrate(1ms) = 63ms total
+**Example output:**
 
-BUNDLE (4 skills, 3,840 tokens)
-  1. scientific-research-lookup    score=0.91  risk=network
-  2. classify-pd-l1-tps            score=0.84  risk=safe
-  3. publication-figure-style      score=0.82  risk=safe
-  4. citation-verifier             score=0.71  risk=network
+```
+recall(12ms) + rerank(3ms) + graph(2ms) + hydrate(1ms) = 18ms total
+
+BUNDLE  4 skills
+  scientific-research-lookup     → papers:list[Paper]
+  classify-pd-l1-tps             → tps_scores:dict
+  publication-figure-style       → figure:Path
+  citation-verifier              → bibtex:str
 
 COMPOSITION PLAN
-  step 1: scientific-research-lookup(query="PD-L1 breast cancer") → papers:list[Paper]
-  step 2: classify-pd-l1-tps(papers) → tps_scores:dict
-  step 3: publication-figure-style(tps_scores, journal="nature") → figure:Path
-  step 4: citation-verifier(papers) → bibtex:str
-```
-
----
-
-## CLI Reference
-
-### Hook install (normal user path)
-
-```bash
-asf install claude    # Claude Code — writes PreToolUse hook to ~/.claude/CLAUDE.md
-asf install gemini    # Gemini CLI  — writes skillRouter config to .gemini/settings.json
-asf install codex     # OpenAI Codex — appends to AGENTS.md + .codex/hooks.json
-asf install cursor    # Cursor — writes .cursor/rules/asf.mdc
-```
-
-### Registry management
-
-```bash
-# pull pre-built canonical index from CDN (~40MB, 2,058 skills)
-asf pull
-
-# ingest local registries → canonical skill index
-asf ingest ./registries
-
-# incremental rebuild (SHA-256 cache, only changed skills re-extracted)
-asf reindex
-```
-
-### Debugging / development tools
-
-These commands are for testing and development — **not** the normal user flow.
-
-```bash
-# manually route a task (debug only — the hook does this automatically in normal use)
-asf query "fetch SSE stream and execute bash command"
-
-# validate a skill before submitting a PR
-asf validate skills/my-skill
-
-# smoke-eval routing quality for a specific skill
-asf eval my-skill-id
-
-# measure routability metrics for any AI CLI codebase
-asf measure ./some-ai-cli-project
-
-# run as MCP stdio server
-asf serve
+  step 1: scientific-research-lookup(query="PD-L1 breast cancer")
+  step 2: classify-pd-l1-tps(papers)
+  step 3: publication-figure-style(tps_scores, journal="nature")
+  step 4: citation-verifier(papers)
 ```
 
 ---
@@ -165,48 +107,95 @@ asf serve
 Query
   │
   ▼
-Stage 1: BM25 + BGE-small bi-encoder (LanceDB hybrid) ──→ top-100 candidates   ≤10ms
+Stage 1: Okapi BM25 keyword recall ──────────────────→ top-K candidates    ≤15ms
   │
   ▼
-Stage 2: BGE-reranker cross-encoder ──────────────────→ top-30 reranked         ≤50ms
+Stage 2: Jaccard token overlap reranker ─────────────→ top-30 reranked     ≤5ms
+          (or inject your own rerankerFn)
   │
   ▼
-Stage 3: Token-bounded BFS over Skill Knowledge Graph ─→ subgraph + deps        ≤3ms
+Stage 3: Token-bounded BFS over Skill Knowledge Graph → subgraph + deps    ≤3ms
   │
   ▼
-Stage 4: Capability-typed I/O planner (topological sort) → SkillBundle          ≤2ms
+Stage 4: Capability-typed I/O planner (topological sort) → SkillBundle     ≤2ms
   │
   ▼
 SkillBundle.toAnthropic() / .toOpenAI() / .toGemini() / .toMcp()
 ```
 
-All stages run offline. No API keys required. No LLM calls in the routing path.
+**No model downloads.** Stages 1–2 are pure JavaScript — no ONNX, no native binaries, no 600MB embedding models. The reranker is injectable: swap in a cross-encoder or any scoring function without changing the pipeline.
+
+**Dependency-safe.** Stage 3 follows `depends_on` edges unconditionally — a required upstream skill is never silently dropped even under tight token budgets.
 
 ---
 
-## Supported Registries
+## CLI Reference
 
-| Registry | Skills |
-|---|---|
-| antigravity-awesome-skills | 1,431 |
-| claude-skills | 235 |
-| scientific-agent-skills | 133 |
-| awesome-claude-skills | 832 |
-| Any MCP server (`mcp://`) | dynamic |
+### Hook install
 
-After canonicalization (22% dedup): **2,058 canonical skills**
+```bash
+asf install claude    # Claude Code  — PreToolUse hook → ~/.claude/settings.json
+asf install gemini    # Gemini CLI   — BeforeToolSelection hook → ~/.gemini/settings.json
+asf install codex     # OpenAI Codex — AGENTS.md + .codex/hooks.json
+asf install cursor    # Cursor       — .cursor/rules/asf.mdc
+```
+
+### Index management
+
+```bash
+# ingest local skill registries → builds _index.json
+asf ingest --sources ./registries --out ~/.asf
+
+# validate a skill manifest before adding
+asf validate skills/my-skill
+
+# run as MCP stdio server
+asf serve
+```
+
+### Debugging
+
+```bash
+# manually route a task (the hook does this automatically in normal use)
+asf query "fetch SSE stream and execute bash command"
+
+# measure routability metrics for any AI CLI codebase
+asf measure ./some-ai-cli-project
+```
 
 ---
 
 ## Platform Support
 
-| Platform | Install command | Output format |
+| Platform | Hook type | Output format |
 |---|---|---|
-| Claude Code | `asf install claude` | `ToolParam[]` |
-| Gemini CLI | `asf install gemini` | `ActivateSkillToolInput[]` |
-| OpenAI Codex | `asf install codex` | `ChatCompletionTool[]` |
-| Cursor | `asf install cursor` | `.cursor/rules/asf.mdc` |
-| Any MCP host | `asf serve` | MCP stdio server |
+| Claude Code | `PreToolUse` | `ToolParam[]` |
+| Gemini CLI | `BeforeToolSelection` | `allowedFunctionNames[]` |
+| OpenAI Codex | pre-exec filter | `ChatCompletionTool[]` |
+| Cursor | rules file | `.cursor/rules/asf.mdc` |
+| Any MCP host | stdio / SSE | MCP `Tool[]` |
+
+---
+
+## Why No Big Numbers Here
+
+Context-window savings depend on your catalog size, task distribution, and how many skills you've indexed — numbers measured on our test corpus won't hold on yours. Run the eval on your own index:
+
+```bash
+# latency benchmark (pure JS, no index needed)
+node eval/perf/latency_p50_p95.js
+
+# retrieval quality against your own index
+ASF_INDEX_DIR=~/.asf node eval/run_retrieval_eval.js
+```
+
+See [`maintainers_docs/testing_plan/benchmark_evaluation.md`](maintainers_docs/testing_plan/benchmark_evaluation.md) for the full 14-metric eval harness and per-platform testing guide.
+
+---
+
+## Privacy
+
+ASF runs entirely offline. No API calls, no telemetry, no usage tracking. The only network activity is loading `_index.json` from your local filesystem.
 
 ---
 
