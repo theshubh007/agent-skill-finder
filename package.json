@@ -1,6 +1,6 @@
 {
   "name": "agentskillfinder",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "3–5 tools instead of 1,800. ≤65ms. Zero LLM calls in the router.",
   "type": "module",
   "engines": {
@@ -78,10 +78,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/shubhamkothiya/agentskillfinder.git"
+    "url": "https://github.com/theshubh007/agent-skill-finder.git"
   },
   "bugs": {
-    "url": "https://github.com/shubhamkothiya/agentskillfinder/issues"
+    "url": "https://github.com/theshubh007/agent-skill-finder/issues"
   },
-  "homepage": "https://github.com/shubhamkothiya/agentskillfinder#readme"
+  "homepage": "https://github.com/theshubh007/agent-skill-finder#readme"
 }
