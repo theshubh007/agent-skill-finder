@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.7.0] — 2026-04-24
+
+### Added
+- `eval/ablations/routability_thresholds.js` — TLIS / GNCI / CFI threshold ablation runner; sweeps threshold combinations and reports per-combination RScore + health classification
+
+### Docs
+- `README.md` — first public benchmark table: GAP-TD-5 vs Static-100, Keyword-0, Semantic-5 on `sample_100.jsonl`
+- `docs/ARCHITECTURE.md` — §12 token savings section updated with measured numbers (99.8% token reduction, Hit@1 = 0.78, MRR = 0.81, p50 = 63 ms)
+
+---
+
 ## [0.6.0] — 2026-04-24
 
 ### Added
