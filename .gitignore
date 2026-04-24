@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+
+# LanceDB vector index
+*.lance/
+.lance/
+skills/.cache.json
+
+# databases
+*.db
+*.duckdb
+
+# build output
+dist/
+coverage/
+
+# internal research docs (never commit)
+maintainers_docs/
+agentskill_researchpaper.md
+agentskillfinder_plan_claude.md
+agentskillfinder_plan_gemini.md
+IMPLEMENTATION.md
+RESEARCH.md
+paper/
+
+# analysis artifacts
+**/graphify-out/
+**/*-research/
+
+# env
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.swp

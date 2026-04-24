@@ -1,0 +1,29 @@
+# internal docs
+maintainers_docs/
+agentskill_researchpaper.md
+agentskillfinder_plan_claude.md
+agentskillfinder_plan_gemini.md
+IMPLEMENTATION.md
+RESEARCH.md
+paper/
+
+# raw eval data (too large)
+eval/data/*.jsonl
+eval/data/retrieval_eval_150.json
+
+# test fixtures
+test/fixtures/
+
+# analysis artifacts
+**/graphify-out/
+**/*-research/
+
+# dev config
+.nvmrc
+.eslintrc*
+eslint.config.*
+.github/
+coverage/
+*.lance/
+*.db
+*.duckdb
