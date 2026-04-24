@@ -40,13 +40,27 @@ async function main() {
   if (!task) { process.stdout.write('{}'); return; }
 
   const router = new JITRouter({ indexDir });
-  const { bundle } = await router.find({ task, tokenBudget: 4000, maxSkills: 5 });
-  const allowedFunctionNames = bundle.manifests.map(m => m.id);
+  const { bundle, timings } = await router.find({ task, tokenBudget: 4000, maxSkills: 5 });
+
+  // Skill IDs are NOT Gemini function declarations — cannot be used as
+  // allowedFunctionNames. Emitting toolConfig here caused 400 INVALID_ARGUMENT
+  // ("not a subset of function_declarations"). Leave tool gating untouched.
+  const sanitize = (id) => String(id).replace(/[^a-zA-Z0-9_]/g, '_').replace(/^[^a-zA-Z_]/, '_$&');
+  const routedSkills = bundle.manifests.map(m => sanitize(m.id));
+
+  try {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const all = JSON.parse(readFileSync(join(indexDir, '_index.json'), 'utf8'));
+    const CHARS_PER_TOKEN = 3;
+    const bt = bundle.manifests.reduce((s, m) => s + Math.ceil((m.description ?? '').length / CHARS_PER_TOKEN), 0);
+    process.stderr.write(`[ASF] found ${bundle.manifests.length}/${all.length} skills | ~${bt} tokens | ${timings.total}ms\n`);
+  } catch { /* never block Gemini */ }
 
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'BeforeToolSelection',
-      toolConfig: { mode: 'ANY', allowedFunctionNames },
+      routedSkills,
     },
   }));
 }
