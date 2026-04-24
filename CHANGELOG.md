@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.5.0] — 2026-04-23
+
+### Added
+- `src/router.js` — `JITRouter` class: `.find({ task, tokenBudget, maxSkills })` wires all 4 stages; returns `{ bundle: SkillBundle, timings: { recall, rerank, graph, hydrate, total } }`
+- `src/runtime/adapters/claude.js` — standalone `toAnthropic(manifests)` → Claude API `ToolParam[]`
+- `test/test_e2e_query.js` — end-to-end PD-L1 bundle test with injectable fns; validates 4-skill composition order
+
+### Updated
+- `src/skillIndex.js` — `SkillIndex.build()` now runs `buildGraph` → `clusterGraph` → LanceDB `buildIndex` in one pass; accepts `embedFn`; returns `communityCount`
+- `bin/asf.js` — `asf query "<task>"` wired to `JITRouter`; prints per-stage timings, BUNDLE table, COMPOSITION PLAN, deadlock/I/O warnings
+
+
+---
+
 ## [0.4.0] — 2026-04-23
 
 ### Added
