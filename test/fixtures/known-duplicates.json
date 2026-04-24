@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "note": "parse_args god-node — identical implementation across registries",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "parse-args",       "registry": "antigravity",    "slop_score": 0.78, "script": "function parseArgs(argv) {\n  return argv.slice(2);\n}" },
+      { "id": "parse-arguments",  "registry": "awesome-claude", "slop_score": 0.42, "script": "function parseArgs(argv) {\n  return argv.slice(2);\n}" }
+    ],
+    "expected_canonical": "parse-args"
+  },
+  {
+    "id": 2,
+    "note": "DOCXSchemaValidator — same class body, different names",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "docx-schema-validator", "registry": "antigravity",    "slop_score": 0.81, "script": "class DOCXSchemaValidator {\n  validate(doc) { return doc.body !== null; }\n}" },
+      { "id": "docx-validator",        "registry": "awesome-claude", "slop_score": 0.55, "script": "class DOCXSchemaValidator {\n  validate(doc) { return doc.body !== null; }\n}" }
+    ],
+    "expected_canonical": "docx-schema-validator"
+  },
+  {
+    "id": 3,
+    "note": "BaseSchemaValidator — identical base class across registries",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "base-schema-validator", "registry": "antigravity",    "slop_score": 0.74, "script": "class BaseSchemaValidator {\n  constructor() { this.errors = []; }\n  isValid() { return this.errors.length === 0; }\n}" },
+      { "id": "schema-validator-base", "registry": "scientific",     "slop_score": 0.61, "script": "class BaseSchemaValidator {\n  constructor() { this.errors = []; }\n  isValid() { return this.errors.length === 0; }\n}" }
+    ],
+    "expected_canonical": "base-schema-validator"
+  },
+  {
+    "id": 4,
+    "note": "web-search — semantically identical descriptions",
+    "dedup_type": "cosine",
+    "pair": [
+      { "id": "web-search",   "registry": "antigravity",    "slop_score": 0.88, "embedding": [0.92, 0.15, 0.02, 0.10] },
+      { "id": "web-fetcher",  "registry": "awesome-claude", "slop_score": 0.62, "embedding": [0.91, 0.16, 0.02, 0.09] }
+    ],
+    "expected_canonical": "web-search"
+  },
+  {
+    "id": 5,
+    "note": "read-file — identical file read utility",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "read-file",       "registry": "antigravity",    "slop_score": 0.70, "script": "import { readFileSync } from 'fs';\nexport function readFile(p) { return readFileSync(p, 'utf8'); }" },
+      { "id": "file-reader",     "registry": "scientific",     "slop_score": 0.48, "script": "import { readFileSync } from 'fs';\nexport function readFile(p) { return readFileSync(p, 'utf8'); }" }
+    ],
+    "expected_canonical": "read-file"
+  },
+  {
+    "id": 6,
+    "note": "json-parser — identical JSON utility",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "json-parser",  "registry": "antigravity",    "slop_score": 0.76, "script": "export function parseJSON(s) { return JSON.parse(s); }" },
+      { "id": "parse-json",   "registry": "awesome-claude", "slop_score": 0.51, "script": "export function parseJSON(s) { return JSON.parse(s); }" }
+    ],
+    "expected_canonical": "json-parser"
+  },
+  {
+    "id": 7,
+    "note": "http-get — identical HTTP GET wrapper",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "http-get",     "registry": "antigravity",    "slop_score": 0.83, "script": "export async function httpGet(url) {\n  const r = await fetch(url);\n  return r.json();\n}" },
+      { "id": "fetch-url",    "registry": "scientific",     "slop_score": 0.57, "script": "export async function httpGet(url) {\n  const r = await fetch(url);\n  return r.json();\n}" }
+    ],
+    "expected_canonical": "http-get"
+  },
+  {
+    "id": 8,
+    "note": "run-bash — identical shell exec wrapper",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "run-bash",      "registry": "antigravity",    "slop_score": 0.72, "script": "import { execSync } from 'child_process';\nexport function runBash(cmd) { return execSync(cmd, { encoding: 'utf8' }); }" },
+      { "id": "execute-shell", "registry": "awesome-claude", "slop_score": 0.44, "script": "import { execSync } from 'child_process';\nexport function runBash(cmd) { return execSync(cmd, { encoding: 'utf8' }); }" }
+    ],
+    "expected_canonical": "run-bash"
+  },
+  {
+    "id": 9,
+    "note": "date-format — identical date formatting utility",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "date-format",   "registry": "antigravity",    "slop_score": 0.69, "script": "export function formatDate(d) { return new Date(d).toISOString().slice(0, 10); }" },
+      { "id": "format-date",   "registry": "scientific",     "slop_score": 0.53, "script": "export function formatDate(d) { return new Date(d).toISOString().slice(0, 10); }" }
+    ],
+    "expected_canonical": "date-format"
+  },
+  {
+    "id": 10,
+    "note": "csv-parse — identical CSV parsing utility",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "csv-parse",    "registry": "antigravity",    "slop_score": 0.80, "script": "export function parseCsv(text) { return text.split('\\n').map(r => r.split(',')); }" },
+      { "id": "parse-csv",    "registry": "awesome-claude", "slop_score": 0.55, "script": "export function parseCsv(text) { return text.split('\\n').map(r => r.split(',')); }" }
+    ],
+    "expected_canonical": "csv-parse"
+  },
+  {
+    "id": 11,
+    "note": "yaml-load — identical YAML parser wrapper",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "yaml-load",      "registry": "antigravity",    "slop_score": 0.75, "script": "import yaml from 'js-yaml';\nexport function loadYaml(s) { return yaml.load(s); }" },
+      { "id": "load-yaml",      "registry": "scientific",     "slop_score": 0.50, "script": "import yaml from 'js-yaml';\nexport function loadYaml(s) { return yaml.load(s); }" }
+    ],
+    "expected_canonical": "yaml-load"
+  },
+  {
+    "id": 12,
+    "note": "env-load — identical .env file loader",
+    "dedup_type": "ast_hash",
+    "pair": [
+      { "id": "env-load",     "registry": "antigravity",    "slop_score": 0.78, "script": "import { config } from 'dotenv';\nexport function loadEnv() { config(); return process.env; }" },
+      { "id": "dotenv-load",  "registry": "awesome-claude", "slop_score": 0.46, "script": "import { config } from 'dotenv';\nexport function loadEnv() { config(); return process.env; }" }
+    ],
+    "expected_canonical": "env-load"
+  }
+]
