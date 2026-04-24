@@ -11,6 +11,7 @@ import { extractMd } from '../src/kg/extractMd.js';
 import { computeTLIS, computeGNCI, computeCFI, computeRScore, routingRisk, failureModes } from '../src/metrics.js';
 import { computeSlopScore } from '../src/slopGate.js';
 import { CapabilityType } from '../src/manifest.js';
+import { JITRouter } from '../src/router.js';
 
 const program = new Command();
 
@@ -191,9 +192,53 @@ program
   .description('Route a task to a 3–5-skill bundle via the 4-stage pipeline')
   .option('--budget <tokens>', 'token budget', '4000')
   .option('--max-skills <n>', 'max skills in bundle', '5')
+  .option('--index-dir <path>', 'directory containing skills.lance index')
   .action(async (task, opts) => {
-    // Implemented in Commit 39
-    console.log(`[query] "${task}" — (available from v0.5.0)`);
+    const tokenBudget = parseInt(opts.budget, 10);
+    const maxSkills = parseInt(opts.maxSkills, 10);
+    const indexDir = opts.indexDir ? resolve(opts.indexDir) : process.cwd();
+
+    const router = new JITRouter({ indexDir });
+
+    let result;
+    try {
+      result = await router.find({ task, tokenBudget, maxSkills });
+    } catch (err) {
+      console.error(`[error] ${err.message}`);
+      console.error('Run `asf ingest` first to build the skill index.');
+      process.exit(1);
+    }
+
+    const { bundle, timings } = result;
+
+    console.log(
+      `\nStages: recall(${timings.recall}ms) + rerank(${timings.rerank}ms) + ` +
+      `graph(${timings.graph}ms) + hydrate(${timings.hydrate}ms) = ${timings.total}ms total`,
+    );
+
+    console.log(`\nBUNDLE (${bundle.manifests.length} skills)`);
+    for (let i = 0; i < bundle.manifests.length; i++) {
+      const m = bundle.manifests[i];
+      const risk = m.risk?.tier ?? (typeof m.risk === 'string' ? m.risk : 'unknown');
+      console.log(`  ${i + 1}. ${m.id.padEnd(40)} risk=${risk}`);
+    }
+
+    if (bundle.steps.length > 0) {
+      console.log('\nCOMPOSITION PLAN');
+      for (const s of bundle.steps) {
+        const outs = s.outputs.map((o) => `${o.name}:${o.type}`).join(', ');
+        const deps = s.dependsOn.length > 0 ? `  (depends: ${s.dependsOn.join(', ')})` : '';
+        console.log(`  step ${s.step}: ${s.skill}${deps}${outs ? `  →  ${outs}` : ''}`);
+      }
+    }
+
+    if (bundle.plan?.deadlocks?.length > 0) {
+      console.log(`\n[warn] deadlocks: ${bundle.plan.deadlocks.join(', ')}`);
+    }
+    if (bundle.plan?.ioViolations?.length > 0) {
+      const pairs = bundle.plan.ioViolations.map((v) => `${v.from}→${v.to}`).join(', ');
+      console.log(`[warn] I/O type mismatches: ${pairs}`);
+    }
   });
 
 // ── serve ─────────────────────────────────────────────────────────────────────
