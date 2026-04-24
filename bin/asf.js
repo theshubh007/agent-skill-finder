@@ -13,6 +13,7 @@ import { computeSlopScore } from '../src/slopGate.js';
 import { CapabilityType } from '../src/manifest.js';
 import { JITRouter } from '../src/router.js';
 import { install } from '../src/installer.js';
+import { pull } from '../src/pull.js';
 
 const program = new Command();
 
@@ -239,6 +240,26 @@ program
     if (bundle.plan?.ioViolations?.length > 0) {
       const pairs = bundle.plan.ioViolations.map((v) => `${v.from}→${v.to}`).join(', ');
       console.log(`[warn] I/O type mismatches: ${pairs}`);
+    }
+  });
+
+// ── pull ──────────────────────────────────────────────────────────────────────
+program
+  .command('pull')
+  .description('Download pre-built canonical skill index from CDN (~40MB)')
+  .option('--out <dir>', 'destination directory (default: ./skills)')
+  .option('--cdn <url>', 'override CDN base URL')
+  .action(async (opts) => {
+    try {
+      const result = await pull({
+        outputDir: opts.out,
+        cdnBase: opts.cdn,
+      });
+      const mb = (result.lanceBytes / 1024 / 1024).toFixed(1);
+      console.log(`\n✓ Index ready at ${result.outputDir}  (${mb} MB downloaded)`);
+    } catch (err) {
+      console.error(`[pull] ${err.message}`);
+      process.exit(1);
     }
   });
 
