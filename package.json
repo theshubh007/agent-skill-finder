@@ -1,6 +1,6 @@
 {
   "name": "agentskillfinder",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "3–5 tools instead of 1,800. ≤65ms. Zero LLM calls in the router.",
   "type": "module",
   "engines": {
@@ -31,7 +31,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "lint": "eslint src/ bin/ eval/ test/",
+    "lint": "eslint src/ bin/ test/",
     "ingest": "node bin/asf.js ingest",
     "validate": "node bin/asf.js validate",
     "measure": "node bin/asf.js measure",
@@ -69,6 +69,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
     "eslint": "^9.15.0"
   },
   "repository": {

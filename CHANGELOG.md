@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2.0] — 2026-04-23
+
+### Added
+- `src/kg/schema.js` — confidence-tagged edge schema (EXTRACTED / INFERRED / AMBIGUOUS) with zod
+- `src/kg/extractJs.js` — tree-sitter JS/TS AST extractor; ESM import + require() → EXTRACTED depends_on; call-graph → INFERRED 0.6
+- `src/kg/extractMd.js` — SKILL.md frontmatter + Required/References section extractor
+- `src/kg/build.js` — graphology DirectedGraph builder; merges extraction dicts; highest-confidence edge wins per (src, tgt, relation)
+- `src/kg/cluster.js` — Louvain community detection; derives community label from most-common capabilityType; CFI numerator (unnamedCount)
+- `src/kg/analyze.js` — god-node detection (degree > mean × 3.0), bridge-node betweenness centrality, isolated tool nodes (TLIS numerator)
+- `src/kg/walk.js` — token-bounded BFS subgraph expansion; traverses depends_on / complements / co_used_with; dedup by canonicalId; slop filter
+- `src/kg/cache.js` — SHA256 incremental cache; frontmatter-stripped for .md; stores `{ skillId → hash }` in `skills/.cache.json`
+- `src/metrics.js` — TLIS / GNCI / CFI / RScore formulas; routingRisk(); failureModes()
+- `bin/asf.js measure` — wired to full KG pipeline; prints TLIS / GNCI / CFI / RScore + failure modes
+- `docs/ARCHITECTURE.md §13–14` — measured values for gemini-cli (GNCI=51.1) and opencode (CFI=41.5); three failure mode taxonomy
+
+---
+
 ## [0.1.0] — 2026-04-23
 
 ### Added
