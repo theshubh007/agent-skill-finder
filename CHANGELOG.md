@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.9.0] — 2026-04-24
+
+### Added
+- `src/telemetry.js` — injectable telemetry store (`MemoryStore` for tests, `DuckDBStore` for production); `TelemetryStore` API: `logQuery`, `getSuccessRate`, `allSuccessRates`, `recentEntries`
+- `src/learning/ltr.js` — Learning-to-Rank retrain; `computeDeltas` scales `(successRate − 0.5) × 0.2` for skills with ≥10 queries; `applyDeltas` re-sorts by adjusted score
+- `src/learning/retrain.js` — `runRetrain`, `saveDeltas/loadDeltas`, `startRetrainScheduler` (weekly cadence)
+- `src/learning/autoRewrite.js` — `findCandidates` flags skills with `successRate < 0.3` over ≥50 queries as `auto_rewrite_candidate: true`; `detectRewriteCandidates(store)` pipeline
+
+### Updated
+- `src/slopGate.js` — added `TOMBSTONE_THRESHOLD = 0.2`; `computeSlopScore` now returns `tombstoned: boolean`; added `createTombstoneRecord(skillId, manifest, slopResult)` for public audit trail
+- `skills/_slop_blocklist.json` — public audit trail of tombstoned skills (append-only)
+
+---
+
 ## [0.8.0] — 2026-04-24
 
 ### Added
