@@ -181,7 +181,7 @@ Score < 0.4 → quarantine (demotion, not deletion). Skills in quarantine are ex
 
 ## §7. Routability Metrics
 
-Three metrics measure structural routing health of any skill registry or AI CLI codebase:
+Three metrics measure structural routing health of any skill registry or AI CLI codebase. Compute them with `asf measure <path>` (implemented in `src/metrics.js`). See §13 for measured values against real AI CLIs.
 
 ### TLIS — Tool Leak / Isolation Score
 ```
@@ -308,7 +308,9 @@ Delta: 1,232,400,000 tokens/day saved
 
 ## §13. Routability Metrics — Measured Values
 
-Measured against real AI CLI codebases using `asf measure`:
+We measured three production AI CLIs and found distinct structural patterns that prevent reliable tool routing. gemini-cli routes all requests through a single Config node (GNCI = 51.1). opencode fragments into 788 skill communities with 769 unnamed (CFI = 41.5). Neither system can be fixed by retrieval improvements alone — they require structural changes.
+
+Run `asf measure <path>` on any codebase to reproduce these numbers:
 
 | System | TLIS | GNCI | CFI | RScore | Primary Failure |
 |---|---|---|---|---|---|
