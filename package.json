@@ -1,5 +1,5 @@
 {
-  "name": "agentskillfinder",
+  "name": "agent-skill-finder",
   "version": "1.0.0",
   "description": "3–5 tools instead of 1,800. ≤65ms. Zero LLM calls in the router.",
   "type": "module",
@@ -8,7 +8,7 @@
   },
   "bin": {
     "asf": "bin/asf.js",
-    "agentskillfinder": "bin/asf.js"
+    "agent-skill-finder": "bin/asf.js"
   },
   "main": "./src/index.js",
   "exports": {

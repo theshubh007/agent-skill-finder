@@ -1,4 +1,4 @@
-<h1 align="center">agentskillfinder</h1>
+<h1 align="center">agent-skill-finder</h1>
 
 <p align="center">
   <strong>Routes any task to 3–5 skills instead of hundreds. Zero LLM calls. Zero model downloads.</strong>
@@ -48,13 +48,13 @@ ASF installs a hook into your AI CLI that intercepts every prompt and narrows th
 
 ```bash
 # build a skill index once (point at your local skill directories)
-npx agentskillfinder ingest --sources ./skills --out ~/.asf
+npx agent-skill-finder ingest --sources ./skills --out ~/.asf
 ```
 
 ### Claude Code
 
 ```bash
-npx agentskillfinder install claude
+npx agent-skill-finder install claude
 ```
 
 ASF writes a `PreToolUse` hook into `~/.claude/settings.json`. Every subsequent Claude Code prompt is intercepted — the model receives only the 3–5 tools that match the task.
@@ -77,7 +77,7 @@ asf query "scan this repo for hardcoded secrets"
 ### Gemini CLI
 
 ```bash
-npx agentskillfinder install gemini
+npx agent-skill-finder install gemini
 ```
 
 ASF writes a `BeforeToolSelection` hook into `~/.gemini/settings.json`. Gemini calls ASF before the LLM picks a tool — ASF returns `allowedFunctionNames` to narrow the selection space.
@@ -95,7 +95,7 @@ The hook merges into any existing `BeforeToolSelection` entries (e.g. claude-mem
 ### OpenAI Codex
 
 ```bash
-npx agentskillfinder install codex
+npx agent-skill-finder install codex
 ```
 
 ASF writes a pre-exec filter into `.codex/hooks.json` and adds a routing directive to `AGENTS.md`. Codex applies the filter before tool execution.
@@ -110,7 +110,7 @@ codex "refactor this Python module to use async/await"
 ### Cursor
 
 ```bash
-npx agentskillfinder install cursor
+npx agent-skill-finder install cursor
 ```
 
 ASF writes a rules file to `.cursor/rules/asf.mdc`. Cursor includes this rule on every request, directing the model to request only relevant tools.
@@ -129,8 +129,8 @@ For programmatic use: build an index from skill manifests once, then call `JITRo
 ### Index + Router Setup
 
 ```javascript
-import { buildIndex } from 'agentskillfinder';
-import { JITRouter } from 'agentskillfinder/router';
+import { buildIndex } from 'agent-skill-finder';
+import { JITRouter } from 'agent-skill-finder/router';
 
 // build once — reads manifest files, writes _index.json to rootDir
 await buildIndex(manifests, { rootDir: './compiled_skills' });
@@ -165,7 +165,7 @@ const router = new JITRouter({ indexDir: './compiled_skills' });
 
 ```javascript
 import Anthropic from '@anthropic-ai/sdk';
-import { JITRouter } from 'agentskillfinder/router';
+import { JITRouter } from 'agent-skill-finder/router';
 
 const client = new Anthropic();
 const router = new JITRouter({ indexDir: '~/.asf' });
@@ -188,7 +188,7 @@ async function run(task) {
 
 ```javascript
 import OpenAI from 'openai';
-import { JITRouter } from 'agentskillfinder/router';
+import { JITRouter } from 'agent-skill-finder/router';
 
 const client = new OpenAI();
 const router = new JITRouter({ indexDir: '~/.asf' });
@@ -208,7 +208,7 @@ async function run(task) {
 
 ```javascript
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { JITRouter } from 'agentskillfinder/router';
+import { JITRouter } from 'agent-skill-finder/router';
 
 const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const router = new JITRouter({ indexDir: '~/.asf' });
@@ -238,7 +238,7 @@ Add to your MCP host config:
 ```json
 {
   "mcpServers": {
-    "agentskillfinder": {
+    "agent-skill-finder": {
       "command": "asf",
       "args": ["serve"]
     }
@@ -255,7 +255,7 @@ Tools returned as `MCP Tool[]` via `bundle.toMcp()`.
 The default reranker is Jaccard token overlap — fast, zero-dependency, good for most catalogs. Swap in a cross-encoder, embedding model, or any scoring function without touching the rest of the pipeline.
 
 ```javascript
-import { JITRouter } from 'agentskillfinder/router';
+import { JITRouter } from 'agent-skill-finder/router';
 
 const myReranker = async (query, texts) => {
   // return float[] — one score per text, same order as input
