@@ -3,18 +3,6 @@ import { basename, extname } from 'node:path';
 
 let Parser, JavaScript, TypeScript;
 
-function loadTreeSitter() {
-  if (Parser) return;
-  try {
-    const ts = await import('tree-sitter');
-    Parser = ts.default ?? ts;
-    JavaScript = (await import('tree-sitter-javascript')).default;
-    TypeScript = (await import('tree-sitter-typescript')).typescript;
-  } catch {
-    Parser = null;
-  }
-}
-
 // tree-sitter is optional at ingest time; lazy-load to avoid hard failure
 async function getParser(ext) {
   if (Parser === undefined) {
@@ -212,7 +200,8 @@ export async function extractJs(filePath) {
     return { nodes, edges: [] };
   }
 
-  const tree = parser.parse(sourceBytes);
+  const src = sourceBytes.toString('utf8');
+  const tree = parser.parse(src);
   const root = tree.rootNode;
 
   const fnNames = collectFunctionNames(root, sourceBytes);

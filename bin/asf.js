@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { readdirSync, statSync } from 'node:fs';
+import { join, resolve, extname } from 'node:path';
 import { SkillIndex } from '../src/skillIndex.js';
+import { buildGraph } from '../src/kg/build.js';
+import { clusterGraph } from '../src/kg/cluster.js';
+import { extractJs } from '../src/kg/extractJs.js';
+import { extractMd } from '../src/kg/extractMd.js';
+import { computeTLIS, computeGNCI, computeCFI, computeRScore, routingRisk, failureModes } from '../src/metrics.js';
 
 const program = new Command();
 
@@ -41,12 +48,49 @@ program
   });
 
 // ── measure ───────────────────────────────────────────────────────────────────
+function walkDir(dir, exts) {
+  const results = [];
+  try {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) results.push(...walkDir(full, exts));
+      else if (exts.includes(extname(entry.name).toLowerCase())) results.push(full);
+    }
+  } catch { /* skip inaccessible */ }
+  return results;
+}
+
 program
   .command('measure [path]')
   .description('Compute TLIS / GNCI / CFI routability metrics')
   .action(async (pathArg) => {
-    // Implemented in Commit 21
-    console.log(`[measure] ${pathArg ?? '.'} — (available from v0.2.0)`);
+    const targetDir = resolve(pathArg ?? '.');
+    const jsFiles = walkDir(targetDir, ['.js', '.ts', '.mjs', '.cjs']);
+    const mdFiles = walkDir(targetDir, ['.md']);
+
+    const extractions = [];
+    for (const f of jsFiles) {
+      try { extractions.push(await extractJs(f)); } catch { /* skip */ }
+    }
+    for (const f of mdFiles) {
+      try { extractions.push(extractMd(f)); } catch { /* skip */ }
+    }
+
+    const G = buildGraph([], extractions);
+    const clusterResult = clusterGraph(G);
+    const tlis = computeTLIS(G);
+    const gnci = computeGNCI(G);
+    const cfi = computeCFI(clusterResult);
+    const rscore = computeRScore(tlis, gnci, cfi);
+    const risk = routingRisk(rscore);
+    const modes = failureModes(tlis, gnci, cfi);
+
+    console.log(`TLIS   = ${tlis.toFixed(2)}   (threshold: < 0.5 for healthy routing)`);
+    console.log(`GNCI   = ${gnci.toFixed(1)}   (threshold: < 20 for healthy routing)`);
+    console.log(`CFI    = ${cfi.toFixed(1)}   (threshold: < 10 for healthy routing)`);
+    console.log(`RScore = ${rscore.toFixed(2)}  → ROUTING RISK: ${risk}`);
+    if (modes.length > 0) console.log(`Failure mode: ${modes.join(' + ')}`);
   });
 
 // ── query ─────────────────────────────────────────────────────────────────────
