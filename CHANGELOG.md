@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.6.0] — 2026-04-24
+
+### Added
+- `src/runtime/adapters/openai.js` — standalone `toOpenAI(manifests)` → OpenAI `ChatCompletionTool[]`
+- `src/runtime/adapters/gemini.js` — standalone `toGemini(manifests)` → Gemini `Tool[]` + `toGeminiActivateTool(manifests)` → gemini-cli `ActivateSkillToolInput[]`
+- `src/runtime/adapters/mcp.js` — standalone `toMcp(manifests)` → MCP `Tool[]` + `toSkillMdDir(manifests, dir)` writer
+- `src/serve.js` — MCP stdio server; exposes `list_tools`, `query_skills(task, tokenBudget)`, `get_skill(skillId)` via `@modelcontextprotocol/sdk`; `createServer(opts)` + `startStdioServer(opts)`
+- `src/hooks/preToolUse.js` — `runPreToolUse({ toolName, input, router })` intercepts Claude Code tool calls; falls back to allow on router failure
+- `src/hooks/postToolUse.js` — `runPostToolUse({ toolName, input, output, store })` logs outcomes to injectable telemetry store
+- `src/installer.js` — `install(target, opts)` dispatcher + per-target functions:
+  - `installClaude` — appends PreToolUse hook block to `~/.claude/CLAUDE.md`
+  - `installGemini` — writes `skillRouter` config to `.gemini/settings.json`
+  - `installCodex` — appends to `AGENTS.md` + writes `.codex/hooks.json`
+  - `installCursor` — writes `.cursor/rules/asf.mdc` with `alwaysApply: true`
+
+### Updated
+- `bin/asf.js` — `asf install <target>` command wired to `src/installer.js`; `asf serve` stub updated (full impl in `src/serve.js`)
+
+---
+
 ## [0.5.0] — 2026-04-23
 
 ### Added
